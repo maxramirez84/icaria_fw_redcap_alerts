@@ -23,11 +23,22 @@ __status__ = "Dev"
 if __name__ == '__main__':
     URL = tokens.URL
     PROJECTS = tokens.REDCAP_PROJECTS
+    TBV_ALERT = "TBV@{community} AZi/Pbo@{last_dose_date}"
+    CHOICE_SEP = ' | '
+    CODE_SEP = ', '
 
     for project_key in PROJECTS:
+        project = redcap.Project(URL, PROJECTS[project_key])
+
+        # Get list of communities in the health facility catchment area
+        print("Getting the list of communities in the {} catchment area...".format(project_key))
+        community_field = project.export_metadata(fields=['community'], format='df')
+        community_choices = community_field['select_choices_or_calculations'].community
+        communities_string = community_choices.split(CHOICE_SEP)
+        communities = {community.split(CODE_SEP)[0]: community.split(CODE_SEP)[1] for community in communities_string}
+
         # Get all records for each ICARIA REDCap project
         print("Getting all records from {}...".format(project_key))
-        project = redcap.Project(URL, PROJECTS[project_key])
         df = project.export_records(format='df')
 
         # For every project record, check if the number of AZi/Pbo doses is higher than the number of household visits
