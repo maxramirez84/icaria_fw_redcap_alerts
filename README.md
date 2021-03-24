@@ -3,3 +3,9 @@ Python script to setup alerts for ICARIA field workers. These alerts are for the
 
 This script is computing regularly which of the participants requires a household or Non-Compliant visit. This requirement is saved into an eCRF variable in the Screening DCI. This variable will be setup as part of the REDCap custom record label. Like this, field workers will see in a glance which participants they need to
 visit at their households.
+
+## Set alert workflow
+![Set Alert](img/set_alert.jpg)
+
+## Remove alert workflow
+![Remove Alert](img/remove_alert.jpg)

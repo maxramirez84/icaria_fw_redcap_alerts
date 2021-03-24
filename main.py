@@ -60,17 +60,20 @@ if __name__ == '__main__':
         communities_to_be_visited = communities_to_be_visited.apply(int).apply(str).replace(communities)
         communities_to_be_visited.index = communities_to_be_visited.index.get_level_values('record_id')
 
+        # Append to record ids, the date of last AZi/Pbo dose administered to the participant
         last_azi_doses = df.loc[records_to_be_visited, ['int_azi', 'int_date']]
         last_azi_doses = last_azi_doses[last_azi_doses['int_azi'] == 1]
         last_azi_doses = last_azi_doses.groupby('record_id')['int_date'].max()
         last_azi_doses = last_azi_doses.apply(lambda x: datetime.strptime(x, REDCAP_DATE_FORMAT))
         last_azi_doses = last_azi_doses.apply(lambda x: x.strftime(ALERT_DATE_FORMAT))
 
+        # Transform data to be imported into the child_status_fu variable into the REDCap project
         data = {'community': communities_to_be_visited, 'last_azi_date': last_azi_doses}
         data_to_import = pandas.DataFrame(data)
         data_to_import['child_fu_status'] = data_to_import[['community', 'last_azi_date']].apply(
             lambda x: TBV_ALERT.format(community=x[0], last_azi_date=x[1]), axis=1)
 
+        # Import data into the REDCap project
         to_import = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                      for rec_id, participant in data_to_import.iterrows()]
         response = project.import_records(to_import)
