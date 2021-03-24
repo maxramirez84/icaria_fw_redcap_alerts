@@ -7,6 +7,7 @@ scheduled to capture their status. This script is computing regularly which of t
 Non-Compliant visit. This requirement is saved into an eCRF variable in the Screening DCI. This variable will be setup
 as part of the REDCap custom record label. Like this, field workers will see in a glance which participants they need to
 visit at their households."""
+from datetime import datetime
 import pandas
 import redcap
 import tokens
@@ -23,9 +24,11 @@ __status__ = "Dev"
 if __name__ == '__main__':
     URL = tokens.URL
     PROJECTS = tokens.REDCAP_PROJECTS
-    TBV_ALERT = "TBV@{community} AZi/Pbo@{last_dose_date}"
-    CHOICE_SEP = ' | '
-    CODE_SEP = ', '
+    TBV_ALERT = "TBV@{community} AZi/Pbo@{last_azi_date}"
+    CHOICE_SEP = " | "
+    CODE_SEP = ", "
+    REDCAP_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+    ALERT_DATE_FORMAT = "%b %d"
 
     for project_key in PROJECTS:
         project = redcap.Project(URL, PROJECTS[project_key])
@@ -50,8 +53,25 @@ if __name__ == '__main__':
         # Get the project records of the participants requiring a household visit (those in which the azi_supervision
         # index is higher than 0; 0 means correctly supervised; -1 means end of follow up) and update their status
         records_to_be_visited = azi_supervision[azi_supervision > 0].keys()
-        to_import = [{'record_id': record_id, 'child_fu_status': 'TBV'} for record_id in records_to_be_visited]
+
+        # Append to record ids, the participant's community name and date of last AZi/Pbo dose
+        communities_to_be_visited = df['community'][records_to_be_visited]
+        communities_to_be_visited = communities_to_be_visited[communities_to_be_visited.notnull()]
+        communities_to_be_visited = communities_to_be_visited.apply(int).apply(str).replace(communities)
+        communities_to_be_visited.index = communities_to_be_visited.index.get_level_values('record_id')
+
+        last_azi_doses = df.loc[records_to_be_visited, ['int_azi', 'int_date']]
+        last_azi_doses = last_azi_doses[last_azi_doses['int_azi'] == 1]
+        last_azi_doses = last_azi_doses.groupby('record_id')['int_date'].max()
+        last_azi_doses = last_azi_doses.apply(lambda x: datetime.strptime(x, REDCAP_DATE_FORMAT))
+        last_azi_doses = last_azi_doses.apply(lambda x: x.strftime(ALERT_DATE_FORMAT))
+
+        data = {'community': communities_to_be_visited, 'last_azi_date': last_azi_doses}
+        data_to_import = pandas.DataFrame(data)
+        data_to_import['child_fu_status'] = data_to_import[['community', 'last_azi_date']].apply(
+            lambda x: TBV_ALERT.format(community=x[0], last_azi_date=x[1]), axis=1)
+
+        to_import = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                     for rec_id, participant in data_to_import.iterrows()]
         response = project.import_records(to_import)
         print(response)
-
-
