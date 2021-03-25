@@ -99,6 +99,22 @@ def build_fw_alerts_df(redcap_data, record_ids):
     return data_to_import
 
 
+def get_active_alerts(redcap_data):
+    """Get the project records ids of the participants with an activated alert.
+
+    :param redcap_data: Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+
+    :return: A series containing the record ids and alerts of the study participants who have an activated alert.
+    :rtype: pandas.Series
+    """
+    active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
+    active_alerts = active_alerts[active_alerts.notnull()]
+    active_alerts.index = active_alerts.index.get_level_values('record_id')
+
+    return active_alerts
+
+
 if __name__ == '__main__':
     URL = tokens.URL
     PROJECTS = tokens.REDCAP_PROJECTS
@@ -118,8 +134,11 @@ if __name__ == '__main__':
         print("Getting all records from {}...".format(project_key))
         df = project.export_records(format='df')
 
-        # Get the project records of the participants requiring a household visit
+        # Get the project records ids of the participants requiring a household visit
         records_to_be_visited = get_record_ids_tbv(df)
+
+        # Get the project records ids of the participants with an active alert
+        records_with_alerts = get_active_alerts(df)
 
         # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
         to_import_df = build_fw_alerts_df(df, records_to_be_visited)
