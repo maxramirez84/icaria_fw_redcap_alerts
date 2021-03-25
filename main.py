@@ -144,11 +144,16 @@ if __name__ == '__main__':
         # activated alerts already visited)
         alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
 
+        # Import data into the REDCap project: Alerts removal
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
+        response = project.import_records(to_import_dict, overwrite='overwrite')
+        print("Alerts removal: {}".format(response.get('count')))
+
         # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
         to_import_df = build_fw_alerts_df(df, records_to_be_visited)
 
-        # Import data into the REDCap project
+        # Import data into the REDCap project: Alerts setup
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                           for rec_id, participant in to_import_df.iterrows()]
         response = project.import_records(to_import_dict)
-        print(response)
+        print("Alerts setup: {}".format(response.get('count')))
