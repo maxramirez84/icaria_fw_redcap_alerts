@@ -105,14 +105,14 @@ def get_active_alerts(redcap_data):
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
 
-    :return: A series containing the record ids and alerts of the study participants who have an activated alert.
-    :rtype: pandas.Series
+    :return: Array containing the record ids and alerts of the study participants who have an activated alert.
+    :rtype: pandas.Int64Index
     """
     active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
     active_alerts = active_alerts[active_alerts.notnull()]
     active_alerts.index = active_alerts.index.get_level_values('record_id')
 
-    return active_alerts
+    return active_alerts.keys()
 
 
 if __name__ == '__main__':
@@ -139,6 +139,10 @@ if __name__ == '__main__':
 
         # Get the project records ids of the participants with an active alert
         records_with_alerts = get_active_alerts(df)
+
+        # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
+        # activated alerts already visited)
+        alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
 
         # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
         to_import_df = build_fw_alerts_df(df, records_to_be_visited)
