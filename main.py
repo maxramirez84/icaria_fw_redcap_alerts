@@ -34,7 +34,6 @@ def get_list_communities(redcap_project):
     :return: A dictionary in which the keys are the community code and the values are the community names.
     :rtype: dict
     """
-    print("Getting the list of communities in the {} catchment area...".format(project_key))
     community_field = redcap_project.export_metadata(fields=['community'], format='df')
     community_choices = community_field['select_choices_or_calculations'].community
     communities_string = community_choices.split(CHOICE_SEP)
@@ -63,7 +62,7 @@ def get_record_ids_tbv(redcap_data):
     return azi_supervision[azi_supervision > 0].keys()
 
 
-def build_fw_alerts_df(redcap_data, record_ids):
+def build_fw_alerts_df(redcap_data, record_ids, catchment_communities):
     """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
     participant requiring an AZi/Pbo supervision household visit.
 
@@ -72,6 +71,8 @@ def build_fw_alerts_df(redcap_data, record_ids):
     :param record_ids: Array of record ids representing those study participants that require a AZi/Pbo supervision
     household visit
     :type record_ids: pandas.Int64Index
+    :param catchment_communities: Dictionary with the community codes attached to each community name
+    :type catchment_communities: dict
 
     :return: A dataframe with the columns community, last_azi_date and child_fu_status in which each row is identified
     by the REDCap record id and represents a study participant to be visited.
@@ -80,7 +81,7 @@ def build_fw_alerts_df(redcap_data, record_ids):
     # Append to record ids, the participant's community name
     communities_to_be_visited = redcap_data['community'][record_ids]
     communities_to_be_visited = communities_to_be_visited[communities_to_be_visited.notnull()]
-    communities_to_be_visited = communities_to_be_visited.apply(int).apply(str).replace(communities)
+    communities_to_be_visited = communities_to_be_visited.apply(int).apply(str).replace(catchment_communities)
     communities_to_be_visited.index = communities_to_be_visited.index.get_level_values('record_id')
 
     # Append to record ids, the date of last AZi/Pbo dose administered to the participant
@@ -127,11 +128,8 @@ if __name__ == '__main__':
     for project_key in PROJECTS:
         project = redcap.Project(URL, PROJECTS[project_key])
 
-        # Get list of communities in the health facility catchment area
-        communities = get_list_communities(project)
-
         # Get all records for each ICARIA REDCap project
-        print("Getting all records from {}...".format(project_key))
+        print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         df = project.export_records(format='df')
 
         # Get the project records ids of the participants requiring a household visit
@@ -149,8 +147,11 @@ if __name__ == '__main__':
         response = project.import_records(to_import_dict, overwrite='overwrite')
         print("Alerts removal: {}".format(response.get('count')))
 
+        # Get list of communities in the health facility catchment area
+        communities = get_list_communities(project)
+
         # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-        to_import_df = build_fw_alerts_df(df, records_to_be_visited)
+        to_import_df = build_fw_alerts_df(df, records_to_be_visited, communities)
 
         # Import data into the REDCap project: Alerts setup
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
