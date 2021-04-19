@@ -62,7 +62,7 @@ def get_record_ids_tbv(redcap_data):
     return azi_supervision[azi_supervision > 0].keys()
 
 
-def build_fw_alerts_df(redcap_data, record_ids, catchment_communities):
+def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_string):
     """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
     participant requiring an AZi/Pbo supervision household visit.
 
@@ -73,6 +73,8 @@ def build_fw_alerts_df(redcap_data, record_ids, catchment_communities):
     :type record_ids: pandas.Int64Index
     :param catchment_communities: Dictionary with the community codes attached to each community name
     :type catchment_communities: dict
+    :param alert_string: String with the alert to be setup containing two placeholders (community & last AZi dose date)
+    :type alert_string: str
 
     :return: A dataframe with the columns community, last_azi_date and child_fu_status in which each row is identified
     by the REDCap record id and represents a study participant to be visited.
@@ -95,22 +97,25 @@ def build_fw_alerts_df(redcap_data, record_ids, catchment_communities):
     data = {'community': communities_to_be_visited, 'last_azi_date': last_azi_doses}
     data_to_import = pandas.DataFrame(data)
     data_to_import['child_fu_status'] = data_to_import[['community', 'last_azi_date']].apply(
-        lambda x: TBV_ALERT.format(community=x[0], last_azi_date=x[1]), axis=1)
+        lambda x: alert_string.format(community=x[0], last_azi_date=x[1]), axis=1)
 
     return data_to_import
 
 
-def get_active_alerts(redcap_data):
+def get_active_alerts(redcap_data, alert):
     """Get the project records ids of the participants with an activated alert.
 
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
+    :param alert: String representing the type of alerts to be retrieved
+    :type alert: str
 
     :return: Array containing the record ids and alerts of the study participants who have an activated alert.
     :rtype: pandas.Int64Index
     """
     active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
     active_alerts = active_alerts[active_alerts.notnull()]
+    active_alerts = active_alerts[active_alerts.str.startswith(alert)]
     active_alerts.index = active_alerts.index.get_level_values('record_id')
 
     return active_alerts.keys()
@@ -119,7 +124,8 @@ def get_active_alerts(redcap_data):
 if __name__ == '__main__':
     URL = tokens.URL
     PROJECTS = tokens.REDCAP_PROJECTS
-    TBV_ALERT = "TBV@{community} AZi/Pbo@{last_azi_date}"
+    TBV_ALERT = "TBV"
+    TBV_ALERT_STRING = TBV_ALERT + "@{community} AZi/Pbo@{last_azi_date}"
     CHOICE_SEP = " | "
     CODE_SEP = ", "
     REDCAP_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -136,7 +142,7 @@ if __name__ == '__main__':
         records_to_be_visited = get_record_ids_tbv(df)
 
         # Get the project records ids of the participants with an active alert
-        records_with_alerts = get_active_alerts(df)
+        records_with_alerts = get_active_alerts(df, TBV_ALERT)
 
         # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
         # activated alerts already visited)
@@ -151,7 +157,7 @@ if __name__ == '__main__':
         communities = get_list_communities(project)
 
         # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-        to_import_df = build_fw_alerts_df(df, records_to_be_visited, communities)
+        to_import_df = build_fw_alerts_df(df, records_to_be_visited, communities, TBV_ALERT_STRING)
 
         # Import data into the REDCap project: Alerts setup
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
