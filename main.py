@@ -9,6 +9,8 @@ as part of the REDCap custom record label. Like this, field workers will see in 
 visit at their households."""
 
 from datetime import datetime
+from datetime import timedelta
+import math
 import pandas
 import redcap
 import tokens
@@ -67,8 +69,39 @@ def get_record_ids_tbv(redcap_data):
     return azi_supervision[azi_supervision > 0].keys()
 
 
-def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_string, redcap_date_format,
-                       alert_date_format):
+def get_record_ids_nc(redcap_data, days_to_nc):
+    """Get the project record ids of the participants requiring a household visit because they are non-compliant, i.e.
+    they were expected in the Health Facility more than some weeks ago. Thus, for every project record, check
+    if the return date of the last visit was more than some weeks ago and the participant hasn't a non-compliant visit
+    yet.
+
+    :param redcap_data: Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+    :param days_to_nc: Number of days from the return date defined during the last visit to the HF to be considered as
+                       a non-compliant participant
+    :type days_to_nc: int
+
+    :return: Array of record ids representing those study participants that are non-compliant (according to the
+    definition) and require a household visit to follow up on their status
+    :rtype: pandas.Int64Index
+    """
+
+    # Cast int_next_visit column from str to date and get the last return date
+    x = redcap_data
+    x['int_next_visit'] = pandas.to_datetime(x['int_next_visit'])
+    x['comp_date'] = pandas.to_datetime(x['comp_date'])
+    last_return_dates = x.groupby('record_id')['int_next_visit'].max()
+    last_return_dates = last_return_dates[last_return_dates.notnull()]
+    last_nc_visits = x.groupby('record_id')['comp_date'].max()
+    last_nc_visits = last_nc_visits[last_return_dates.keys()]
+    already_visited = last_nc_visits > last_return_dates
+    days_delayed = datetime.today() - last_return_dates[~already_visited]
+
+    return days_delayed[days_delayed > timedelta(days=days_to_nc)].keys()
+
+
+def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_string, redcap_date_format,
+                        alert_date_format):
     """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
     participant requiring an AZi/Pbo supervision household visit.
 
@@ -108,6 +141,46 @@ def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_str
     data_to_import = pandas.DataFrame(data)
     data_to_import['child_fu_status'] = data_to_import[['community', 'last_azi_date']].apply(
         lambda x: alert_string.format(community=x[0], last_azi_date=x[1]), axis=1)
+
+    return data_to_import
+
+
+def build_nc_alerts_df(redcap_data, record_ids, catchment_communities, alert_string):
+    """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
+    participant requiring an AZi/Pbo supervision household visit.
+
+    :param redcap_data:Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+    :param record_ids: Array of record ids representing those study participants that require a AZi/Pbo supervision
+    household visit
+    :type record_ids: pandas.Int64Index
+    :param catchment_communities: Dictionary with the community codes attached to each community name
+    :type catchment_communities: dict
+    :param alert_string: String with the alert to be setup containing two placeholders (community & last AZi dose date)
+    :type alert_string: str
+
+    :return: A dataframe with the columns community, last_azi_date and child_fu_status in which each row is identified
+    by the REDCap record id and represents a study participant to be visited.
+    :rtype: pandas.DataFrame
+    """
+    # Append to record ids, the participant's community name
+    communities_to_be_visited = redcap_data['community'][record_ids]
+    communities_to_be_visited = communities_to_be_visited[communities_to_be_visited.notnull()]
+    communities_to_be_visited = communities_to_be_visited.apply(int).apply(str).replace(catchment_communities)
+    communities_to_be_visited.index = communities_to_be_visited.index.get_level_values('record_id')
+
+    # Append to record ids, the number of days since the return date set during the last HF visit
+    nc_days = redcap_data.loc[record_ids, 'int_next_visit']
+    nc_days = nc_days[nc_days.notnull()]
+    nc_days = pandas.to_datetime(nc_days)
+    nc_days = nc_days.groupby('record_id').max()
+    nc_days = datetime.today() - nc_days
+
+    # Transform data to be imported into the child_status_fu variable into the REDCap project
+    data = {'community': communities_to_be_visited, 'nc_days': nc_days}
+    data_to_import = pandas.DataFrame(data)
+    data_to_import['child_fu_status'] = data_to_import[['community', 'nc_days']].apply(
+        lambda x: alert_string.format(community=x[0], weeks=math.floor(x[1].days / 7)), axis=1)
 
     return data_to_import
 
@@ -170,20 +243,71 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     # Import data into the REDCap project: Alerts removal
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
     response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
-    print("Alerts removal: {}".format(response.get('count')))
+    print("[TO BE VISITED] Alerts removal: {}".format(response.get('count')))
 
     # Get list of communities in the health facility catchment area
     communities = get_list_communities(redcap_project, choice_sep, code_sep)
 
     # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-    to_import_df = build_fw_alerts_df(redcap_project_df, records_to_be_visited, communities, tbv_alert_string,
-                                      redcap_date_format, alert_date_format)
+    to_import_df = build_tbv_alerts_df(redcap_project_df, records_to_be_visited, communities, tbv_alert_string,
+                                       redcap_date_format, alert_date_format)
 
     # Import data into the REDCap project: Alerts setup
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                       for rec_id, participant in to_import_df.iterrows()]
     response = redcap_project.import_records(to_import_dict)
-    print("Alerts setup: {}".format(response.get('count')))
+    print("[TO BE VISITED] Alerts setup: {}".format(response.get('count')))
+
+
+def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, choice_sep, code_sep, days_to_nc):
+    """Remove the Non-compliant alerts of those participants that have been already visited and setup new alerts for
+    these others that become non-compliant recently.
+
+    :param redcap_project: A REDCap project class to communicate with the REDCap API
+    :type redcap_project: redcap.Project
+    :param redcap_project_df: Data frame containing all data exported from the REDCap project
+    :type redcap_project_df: pandas.DataFrame
+    :param nc_alert: Code of the Non-Compliant alerts
+    :type nc_alert: str
+    :param nc_alert_string: String with the alert to be setup
+    :type nc_alert_string: str
+    :param choice_sep: Character used by REDCap to separate choices in a categorical field (radio, dropdown) when
+                       exporting meta-data
+    :type choice_sep: str
+    :param code_sep: Character used by REDCap to separated code and label in every choice when exporting meta-data
+    :type code_sep: str
+    :param days_to_nc: Definition of non-compliant participant - days since return date defined during last HF visit
+    :type days_to_nc: int
+
+    :return: None
+    """
+
+    # Get the project records ids of the participants requiring a visit because they are non-compliant
+    records_to_be_visited = get_record_ids_nc(redcap_project_df, days_to_nc)
+
+    # Get the project records ids of the participants with an active alert
+    records_with_alerts = get_active_alerts(redcap_project_df, nc_alert)
+
+    # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
+    # activated alerts already visited)
+    alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
+
+    # Import data into the REDCap project: Alerts removal
+    to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
+    response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+    print("[NON-COMPLIANT] Alerts removal: {}".format(response.get('count')))
+
+    # Get list of communities in the health facility catchment area
+    communities = get_list_communities(redcap_project, choice_sep, code_sep)
+
+    # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
+    to_import_df = build_nc_alerts_df(redcap_project_df, records_to_be_visited, communities, nc_alert_string)
+
+    # Import data into the REDCap project: Alerts setup
+    to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                      for rec_id, participant in to_import_df.iterrows()]
+    response = redcap_project.import_records(to_import_dict)
+    print("[NON-COMPLIANT] Alerts setup: {}".format(response.get('count')))
 
 
 if __name__ == '__main__':
@@ -195,6 +319,9 @@ if __name__ == '__main__':
     CODE_SEP = ", "
     REDCAP_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     ALERT_DATE_FORMAT = "%b %d"
+    DAYS_TO_NC = 28  # Defined by PI as 4 weeks
+    NC_ALERT = "NC"
+    NC_ALERT_STRING = NC_ALERT + "@{community} ({weeks} weeks)"
 
     for project_key in PROJECTS:
         project = redcap.Project(URL, PROJECTS[project_key])
@@ -206,3 +333,6 @@ if __name__ == '__main__':
         # Households to be visited
         set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT, CHOICE_SEP,
                        CODE_SEP)
+
+        # Non-compliant visits
+        set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC)
