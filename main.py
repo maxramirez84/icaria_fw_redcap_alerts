@@ -87,7 +87,7 @@ def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_str
     communities_to_be_visited.index = communities_to_be_visited.index.get_level_values('record_id')
 
     # Append to record ids, the date of last AZi/Pbo dose administered to the participant
-    last_azi_doses = redcap_data.loc[records_to_be_visited, ['int_azi', 'int_date']]
+    last_azi_doses = redcap_data.loc[record_ids, ['int_azi', 'int_date']]
     last_azi_doses = last_azi_doses[last_azi_doses['int_azi'] == 1]
     last_azi_doses = last_azi_doses.groupby('record_id')['int_date'].max()
     last_azi_doses = last_azi_doses.apply(lambda x: datetime.strptime(x, REDCAP_DATE_FORMAT))
@@ -121,6 +121,50 @@ def get_active_alerts(redcap_data, alert):
     return active_alerts.keys()
 
 
+def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string):
+    """Remove the Household to be visited alerts of those participants that have been already visited and setup new
+    alerts for these others that took recently AZi/Pbo and require a household visit.
+
+    :param redcap_project: A REDCap project class to communicate with the REDCap API
+    :type redcap_project: redcap.Project
+    :param redcap_project_df: Data frame containing all data exported from the REDCap project
+    :type redcap_project_df: pandas.DataFrame
+    :param tbv_alert: Code of the To Be Visited alerts
+    :type tbv_alert: str
+    :param tbv_alert_string: String with the alert to be setup
+    :type tbv_alert_string: str
+
+    :return: None
+    """
+
+    # Get the project records ids of the participants requiring a household visit
+    records_to_be_visited = get_record_ids_tbv(redcap_project_df)
+
+    # Get the project records ids of the participants with an active alert
+    records_with_alerts = get_active_alerts(redcap_project_df, tbv_alert)
+
+    # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
+    # activated alerts already visited)
+    alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
+
+    # Import data into the REDCap project: Alerts removal
+    to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
+    response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+    print("Alerts removal: {}".format(response.get('count')))
+
+    # Get list of communities in the health facility catchment area
+    communities = get_list_communities(redcap_project)
+
+    # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
+    to_import_df = build_fw_alerts_df(redcap_project_df, records_to_be_visited, communities, tbv_alert_string)
+
+    # Import data into the REDCap project: Alerts setup
+    to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                      for rec_id, participant in to_import_df.iterrows()]
+    response = redcap_project.import_records(to_import_dict)
+    print("Alerts setup: {}".format(response.get('count')))
+
+
 if __name__ == '__main__':
     URL = tokens.URL
     PROJECTS = tokens.REDCAP_PROJECTS
@@ -138,29 +182,5 @@ if __name__ == '__main__':
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         df = project.export_records(format='df')
 
-        # Get the project records ids of the participants requiring a household visit
-        records_to_be_visited = get_record_ids_tbv(df)
-
-        # Get the project records ids of the participants with an active alert
-        records_with_alerts = get_active_alerts(df, TBV_ALERT)
-
-        # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
-        # activated alerts already visited)
-        alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
-
-        # Import data into the REDCap project: Alerts removal
-        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
-        response = project.import_records(to_import_dict, overwrite='overwrite')
-        print("Alerts removal: {}".format(response.get('count')))
-
-        # Get list of communities in the health facility catchment area
-        communities = get_list_communities(project)
-
-        # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-        to_import_df = build_fw_alerts_df(df, records_to_be_visited, communities, TBV_ALERT_STRING)
-
-        # Import data into the REDCap project: Alerts setup
-        to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
-                          for rec_id, participant in to_import_df.iterrows()]
-        response = project.import_records(to_import_dict)
-        print("Alerts setup: {}".format(response.get('count')))
+        # Households to be visited
+        set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING)
