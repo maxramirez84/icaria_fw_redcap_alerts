@@ -24,20 +24,25 @@ __email__ = "maximo.ramirez@isglobal.org"
 __status__ = "Dev"
 
 
-def get_list_communities(redcap_project):
+def get_list_communities(redcap_project, choice_sep, code_sep):
     """Get list of communities in the health facility catchment area from the health facility REDCap project. This list
     is part of the metadata of the ID.community field.
 
     :param redcap_project: The REDCap project class
     :type redcap_project: redcap.Project
+    :param choice_sep: Character used by REDCap to separate choices in a categorical field (radio, dropdown) when
+                       exporting meta-data
+    :type choice_sep: str
+    :param code_sep: Character used by REDCap to separated code and label in every choice when exporting meta-data
+    :type code_sep: str
 
     :return: A dictionary in which the keys are the community code and the values are the community names.
     :rtype: dict
     """
     community_field = redcap_project.export_metadata(fields=['community'], format='df')
     community_choices = community_field['select_choices_or_calculations'].community
-    communities_string = community_choices.split(CHOICE_SEP)
-    return {community.split(CODE_SEP)[0]: community.split(CODE_SEP)[1] for community in communities_string}
+    communities_string = community_choices.split(choice_sep)
+    return {community.split(code_sep)[0]: community.split(CODE_SEP)[1] for community in communities_string}
 
 
 def get_record_ids_tbv(redcap_data):
@@ -62,7 +67,8 @@ def get_record_ids_tbv(redcap_data):
     return azi_supervision[azi_supervision > 0].keys()
 
 
-def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_string):
+def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_string, redcap_date_format,
+                       alert_date_format):
     """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
     participant requiring an AZi/Pbo supervision household visit.
 
@@ -75,6 +81,10 @@ def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_str
     :type catchment_communities: dict
     :param alert_string: String with the alert to be setup containing two placeholders (community & last AZi dose date)
     :type alert_string: str
+    :param redcap_date_format: Format of the dates in REDCap
+    :type redcap_date_format: str
+    :param alert_date_format: Format of the date of the last AZi/Pbo dose to be displayed in the alert
+    :type alert_date_format: str
 
     :return: A dataframe with the columns community, last_azi_date and child_fu_status in which each row is identified
     by the REDCap record id and represents a study participant to be visited.
@@ -90,8 +100,8 @@ def build_fw_alerts_df(redcap_data, record_ids, catchment_communities, alert_str
     last_azi_doses = redcap_data.loc[record_ids, ['int_azi', 'int_date']]
     last_azi_doses = last_azi_doses[last_azi_doses['int_azi'] == 1]
     last_azi_doses = last_azi_doses.groupby('record_id')['int_date'].max()
-    last_azi_doses = last_azi_doses.apply(lambda x: datetime.strptime(x, REDCAP_DATE_FORMAT))
-    last_azi_doses = last_azi_doses.apply(lambda x: x.strftime(ALERT_DATE_FORMAT))
+    last_azi_doses = last_azi_doses.apply(lambda x: datetime.strptime(x, redcap_date_format))
+    last_azi_doses = last_azi_doses.apply(lambda x: x.strftime(alert_date_format))
 
     # Transform data to be imported into the child_status_fu variable into the REDCap project
     data = {'community': communities_to_be_visited, 'last_azi_date': last_azi_doses}
@@ -121,7 +131,8 @@ def get_active_alerts(redcap_data, alert):
     return active_alerts.keys()
 
 
-def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string):
+def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string, redcap_date_format,
+                   alert_date_format, choice_sep, code_sep):
     """Remove the Household to be visited alerts of those participants that have been already visited and setup new
     alerts for these others that took recently AZi/Pbo and require a household visit.
 
@@ -133,6 +144,15 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     :type tbv_alert: str
     :param tbv_alert_string: String with the alert to be setup
     :type tbv_alert_string: str
+    :param redcap_date_format: Format of the dates in REDCap
+    :type redcap_date_format: str
+    :param alert_date_format: Format of the date of the last AZi/Pbo dose to be displayed in the alert
+    :type alert_date_format: str
+    :param choice_sep: Character used by REDCap to separate choices in a categorical field (radio, dropdown) when
+                       exporting meta-data
+    :type choice_sep: str
+    :param code_sep: Character used by REDCap to separated code and label in every choice when exporting meta-data
+    :type code_sep: str
 
     :return: None
     """
@@ -153,10 +173,11 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     print("Alerts removal: {}".format(response.get('count')))
 
     # Get list of communities in the health facility catchment area
-    communities = get_list_communities(redcap_project)
+    communities = get_list_communities(redcap_project, choice_sep, code_sep)
 
     # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-    to_import_df = build_fw_alerts_df(redcap_project_df, records_to_be_visited, communities, tbv_alert_string)
+    to_import_df = build_fw_alerts_df(redcap_project_df, records_to_be_visited, communities, tbv_alert_string,
+                                      redcap_date_format, alert_date_format)
 
     # Import data into the REDCap project: Alerts setup
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
@@ -183,4 +204,5 @@ if __name__ == '__main__':
         df = project.export_records(format='df')
 
         # Households to be visited
-        set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING)
+        set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT, CHOICE_SEP,
+                       CODE_SEP)
