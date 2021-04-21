@@ -139,8 +139,9 @@ def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_st
     # Transform data to be imported into the child_status_fu variable into the REDCap project
     data = {'community': communities_to_be_visited, 'last_azi_date': last_azi_doses}
     data_to_import = pandas.DataFrame(data)
-    data_to_import['child_fu_status'] = data_to_import[['community', 'last_azi_date']].apply(
-        lambda x: alert_string.format(community=x[0], last_azi_date=x[1]), axis=1)
+    if not data_to_import.empty:
+        data_to_import['child_fu_status'] = data_to_import[['community', 'last_azi_date']].apply(
+            lambda x: alert_string.format(community=x[0], last_azi_date=x[1]), axis=1)
 
     return data_to_import
 
@@ -179,8 +180,9 @@ def build_nc_alerts_df(redcap_data, record_ids, catchment_communities, alert_str
     # Transform data to be imported into the child_status_fu variable into the REDCap project
     data = {'community': communities_to_be_visited, 'nc_days': nc_days}
     data_to_import = pandas.DataFrame(data)
-    data_to_import['child_fu_status'] = data_to_import[['community', 'nc_days']].apply(
-        lambda x: alert_string.format(community=x[0], weeks=math.floor(x[1].days / 7)), axis=1)
+    if not data_to_import.empty:
+        data_to_import['child_fu_status'] = data_to_import[['community', 'nc_days']].apply(
+            lambda x: alert_string.format(community=x[0], weeks=math.floor(x[1].days / 7)), axis=1)
 
     return data_to_import
 
