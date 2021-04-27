@@ -200,6 +200,9 @@ def get_active_alerts(redcap_data, alert):
     """
     active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
     active_alerts = active_alerts[active_alerts.notnull()]
+    if active_alerts.empty:
+        return None
+
     active_alerts = active_alerts[active_alerts.str.startswith(alert)]
     active_alerts.index = active_alerts.index.get_level_values('record_id')
 
@@ -240,12 +243,16 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
 
     # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
     # activated alerts already visited)
-    alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
+    if records_with_alerts is not None:
+        alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
 
-    # Import data into the REDCap project: Alerts removal
-    to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
-    response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
-    print("[TO BE VISITED] Alerts removal: {}".format(response.get('count')))
+        # Import data into the REDCap project: Alerts removal
+
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
+        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        print("[TO BE VISITED] Alerts removal: {}".format(response.get('count')))
+    else:
+        print("[TO BE VISITED] Alerts removal: None")
 
     # Get list of communities in the health facility catchment area
     communities = get_list_communities(redcap_project, choice_sep, code_sep)
@@ -292,12 +299,15 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
 
     # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
     # activated alerts already visited)
-    alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
+    if records_with_alerts is not None:
+        alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
 
-    # Import data into the REDCap project: Alerts removal
-    to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
-    response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
-    print("[NON-COMPLIANT] Alerts removal: {}".format(response.get('count')))
+        # Import data into the REDCap project: Alerts removal
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
+        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        print("[NON-COMPLIANT] Alerts removal: {}".format(response.get('count')))
+    else:
+        print("[NON-COMPLIANT] Alerts removal: None")
 
     # Get list of communities in the health facility catchment area
     communities = get_list_communities(redcap_project, choice_sep, code_sep)
