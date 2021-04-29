@@ -271,6 +271,7 @@ def get_active_alerts(redcap_data, alert):
     return active_alerts.keys()
 
 
+# TO BE VISITED
 def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string, redcap_date_format,
                    alert_date_format, choice_sep, code_sep):
     """Remove the Household to be visited alerts of those participants that have been already visited and setup new
@@ -330,6 +331,7 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     print("[TO BE VISITED] Alerts setup: {}".format(response.get('count')))
 
 
+# NON-COMPLIANT
 def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, choice_sep, code_sep, days_to_nc):
     """Remove the Non-compliant alerts of those participants that have been already visited and setup new alerts for
     these others that become non-compliant recently.
@@ -384,6 +386,7 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
     print("[NON-COMPLIANT] Alerts setup: {}".format(response.get('count')))
 
 
+# NEXT VISIT
 def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, alert_date_format, days_before,
                   days_after):
     """Remove the Next Visit alerts of those participants that have already come to the health facility and setup new
