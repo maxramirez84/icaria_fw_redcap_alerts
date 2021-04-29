@@ -176,21 +176,21 @@ def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_st
 
 
 def build_nc_alerts_df(redcap_data, record_ids, catchment_communities, alert_string):
-    """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
-    participant requiring an AZi/Pbo supervision household visit.
+    """Build dataframe with record ids, communities, non-compliant days and follow up status of every study participant
+    who is non-compliant and requires a supervision household visit.
 
     :param redcap_data:Exported REDCap project data
     :type redcap_data: pandas.DataFrame
-    :param record_ids: Array of record ids representing those study participants that require a AZi/Pbo supervision
+    :param record_ids: Array of record ids representing those non-compliant participants that require a supervision
     household visit
     :type record_ids: pandas.Int64Index
     :param catchment_communities: Dictionary with the community codes attached to each community name
     :type catchment_communities: dict
-    :param alert_string: String with the alert to be setup containing two placeholders (community & last AZi dose date)
+    :param alert_string: String with the alert to be setup containing two placeholders (community & non-compliant weeks)
     :type alert_string: str
 
-    :return: A dataframe with the columns community, last_azi_date and child_fu_status in which each row is identified
-    by the REDCap record id and represents a study participant to be visited.
+    :return: A dataframe with the columns community, nc_days and child_fu_status in which each row is identified by the
+    REDCap record id and represents a study participant to be visited due to non-compliance.
     :rtype: pandas.DataFrame
     """
     # Append to record ids, the participant's community name
