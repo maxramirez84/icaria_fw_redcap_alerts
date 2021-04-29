@@ -386,8 +386,8 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
 
 def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, alert_date_format, days_before,
                   days_after):
-    """Remove the Non-compliant alerts of those participants that have been already visited and setup new alerts for
-    these others that become non-compliant recently.
+    """Remove the Next Visit alerts of those participants that have already come to the health facility and setup new
+    alerts for these others that enter in the flag days_before-days_after interval.
 
     :param redcap_project: A REDCap project class to communicate with the REDCap API
     :type redcap_project: redcap.Project
