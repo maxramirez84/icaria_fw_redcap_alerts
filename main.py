@@ -257,7 +257,7 @@ def get_active_alerts(redcap_data, alert):
     :param alert: String representing the type of alerts to be retrieved
     :type alert: str
 
-    :return: Array containing the record ids and alerts of the study participants who have an activated alert.
+    :return: Array containing the record ids of the study participants who have an activated alert.
     :rtype: pandas.Int64Index
     """
     active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
@@ -271,9 +271,34 @@ def get_active_alerts(redcap_data, alert):
     return active_alerts.keys()
 
 
+def get_record_ids_with_custom_status(redcap_data, defined_alerts):
+    """Get the project records ids of the participants with an custom status set up in the child_fu_status field.
+
+    :param redcap_data: Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+    :param defined_alerts: List of strings representing the type of the defined alerts
+    :type defined_alerts: list
+
+    :return: Array containing the record ids of those participants with a custom follow up status
+    :rtype: pandas.Int64Index
+    """
+    active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
+    active_alerts = active_alerts[active_alerts.notnull()]
+    if active_alerts.empty:
+        return None
+
+    custom_status = active_alerts
+    for alert in defined_alerts:
+        custom_status = custom_status[~active_alerts.str.startswith(alert)]
+
+    custom_status.index = custom_status.index.get_level_values('record_id')
+
+    return custom_status.keys()
+
+
 # TO BE VISITED
 def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string, redcap_date_format,
-                   alert_date_format, choice_sep, code_sep):
+                   alert_date_format, choice_sep, code_sep, blocked_records):
     """Remove the Household to be visited alerts of those participants that have been already visited and setup new
     alerts for these others that took recently AZi/Pbo and require a household visit.
 
@@ -294,12 +319,17 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     :type choice_sep: str
     :param code_sep: Character used by REDCap to separated code and label in every choice when exporting meta-data
     :type code_sep: str
+    :param blocked_records: Array with the record ids that will be ignored during the alerts setup
+    :type blocked_records: pandas.Int64Index
 
     :return: None
     """
 
     # Get the project records ids of the participants requiring a household visit
     records_to_be_visited = get_record_ids_tbv(redcap_project_df)
+
+    # Remove those ids that must be ignored
+    records_to_be_visited = records_to_be_visited.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, tbv_alert)
@@ -332,7 +362,8 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
 
 
 # NON-COMPLIANT
-def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, choice_sep, code_sep, days_to_nc):
+def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, choice_sep, code_sep, days_to_nc,
+                  blocked_records):
     """Remove the Non-compliant alerts of those participants that have been already visited and setup new alerts for
     these others that become non-compliant recently.
 
@@ -351,12 +382,17 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
     :type code_sep: str
     :param days_to_nc: Definition of non-compliant participant - days since return date defined during last HF visit
     :type days_to_nc: int
+    :param blocked_records: Array with the record ids that will be ignored during the alerts setup
+    :type blocked_records: pandas.Int64Index
 
     :return: None
     """
 
     # Get the project records ids of the participants requiring a visit because they are non-compliant
     records_to_be_visited = get_record_ids_nc(redcap_project_df, days_to_nc)
+
+    # Remove those ids that must be ignored
+    records_to_be_visited = records_to_be_visited.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, nc_alert)
@@ -388,7 +424,7 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
 
 # NEXT VISIT
 def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, alert_date_format, days_before,
-                  days_after):
+                  days_after, blocked_records):
     """Remove the Next Visit alerts of those participants that have already come to the health facility and setup new
     alerts for these others that enter in the flag days_before-days_after interval.
 
@@ -406,6 +442,8 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     :type days_before: int
     :param days_after: Number of days after today to continue alerting the participant will come
     :type days_before: int
+    :param blocked_records: Array with the record ids that will be ignored during the alerts setup
+    :type blocked_records: pandas.Int64Index
 
     :return: None
     """
@@ -413,6 +451,9 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     # Get the project records ids of the participants who are expected to come tho the HF in the interval days_before
     # and days_after from today
     records_to_flag = get_record_ids_nv(redcap_project_df, days_before, days_after)
+
+    # Remove those ids that must be ignored
+    records_to_flag = records_to_flag.difference(blocked_records)
 
     # Get the project records ids of the participants requiring a household visit after AZi administration. The TO BE
     # VISITED alert is higher priority than the NEXT VISIT alerts
@@ -462,6 +503,7 @@ if __name__ == '__main__':
     DAYS_AFTER_NV = DAYS_TO_NC  # Defined by In-Country Technical Coordinator
     NV_ALERT = "NEXT VISIT"
     NV_ALERT_STRING = NV_ALERT + ": {return_date}"
+    DEFINED_ALERTS = [TBV_ALERT, NC_ALERT, NV_ALERT]
 
     for project_key in PROJECTS:
         project = redcap.Project(URL, PROJECTS[project_key])
@@ -470,12 +512,16 @@ if __name__ == '__main__':
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         df = project.export_records(format='df')
 
+        # Custom status
+        custom_status_ids = get_record_ids_with_custom_status(df, DEFINED_ALERTS)
+
         # Households to be visited
         set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT, CHOICE_SEP,
-                       CODE_SEP)
+                       CODE_SEP, custom_status_ids)
 
         # Non-compliant visits
-        set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC)
+        set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC, custom_status_ids)
 
         # Next visit
-        set_nv_alerts(project, df, NV_ALERT, NV_ALERT_STRING, ALERT_DATE_FORMAT, DAYS_BEFORE_NV, DAYS_AFTER_NV)
+        set_nv_alerts(project, df, NV_ALERT, NV_ALERT_STRING, ALERT_DATE_FORMAT, DAYS_BEFORE_NV, DAYS_AFTER_NV,
+                      custom_status_ids)
