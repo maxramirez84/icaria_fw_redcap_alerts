@@ -329,7 +329,8 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     records_to_be_visited = get_record_ids_tbv(redcap_project_df)
 
     # Remove those ids that must be ignored
-    records_to_be_visited = records_to_be_visited.difference(blocked_records)
+    if blocked_records is not None:
+        records_to_be_visited = records_to_be_visited.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, tbv_alert)
@@ -392,7 +393,8 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
     records_to_be_visited = get_record_ids_nc(redcap_project_df, days_to_nc)
 
     # Remove those ids that must be ignored
-    records_to_be_visited = records_to_be_visited.difference(blocked_records)
+    if blocked_records is not None:
+        records_to_be_visited = records_to_be_visited.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, nc_alert)
@@ -453,7 +455,8 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     records_to_flag = get_record_ids_nv(redcap_project_df, days_before, days_after)
 
     # Remove those ids that must be ignored
-    records_to_flag = records_to_flag.difference(blocked_records)
+    if blocked_records is not None:
+        records_to_flag = records_to_flag.difference(blocked_records)
 
     # Get the project records ids of the participants requiring a household visit after AZi administration. The TO BE
     # VISITED alert is higher priority than the NEXT VISIT alerts
