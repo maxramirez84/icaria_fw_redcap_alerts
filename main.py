@@ -506,7 +506,7 @@ if __name__ == '__main__':
     DAYS_AFTER_NV = DAYS_TO_NC  # Defined by In-Country Technical Coordinator
     NV_ALERT = "NEXT VISIT"
     NV_ALERT_STRING = NV_ALERT + ": {return_date}"
-    DEFINED_ALERTS = [TBV_ALERT, NC_ALERT, NV_ALERT]
+    DEFINED_ALERTS = [TBV_ALERT, NC_ALERT]  # TBV_ALERT, NC_ALERT, NV_ALERT
 
     for project_key in PROJECTS:
         project = redcap.Project(URL, PROJECTS[project_key])
@@ -519,18 +519,21 @@ if __name__ == '__main__':
         custom_status_ids = get_record_ids_with_custom_status(df, DEFINED_ALERTS)
 
         # Households to be visited
-        set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT, CHOICE_SEP,
-                       CODE_SEP, custom_status_ids)
+        if TBV_ALERT in DEFINED_ALERTS:
+            set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT, CHOICE_SEP,
+                           CODE_SEP, custom_status_ids)
 
         # Update REDCap data as it has may been modified by set_tbv_alerts
         df = project.export_records(format='df')
 
         # Non-compliant visits
-        set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC, custom_status_ids)
+        if NC_ALERT in DEFINED_ALERTS:
+            set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC, custom_status_ids)
 
         # Update REDCap data as it has may been modified by set_nc_alerts
         df = project.export_records(format='df')
 
         # Next visit
-        set_nv_alerts(project, df, NV_ALERT, NV_ALERT_STRING, ALERT_DATE_FORMAT, DAYS_BEFORE_NV, DAYS_AFTER_NV,
-                      custom_status_ids)
+        if NV_ALERT in DEFINED_ALERTS:
+            set_nv_alerts(project, df, NV_ALERT, NV_ALERT_STRING, ALERT_DATE_FORMAT, DAYS_BEFORE_NV, DAYS_AFTER_NV,
+                          custom_status_ids)
