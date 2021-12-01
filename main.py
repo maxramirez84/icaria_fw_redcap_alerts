@@ -56,18 +56,18 @@ if __name__ == '__main__':
             alerts.set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT,
                                   CHOICE_SEP, CODE_SEP, custom_status_ids)
 
-        # Update REDCap data as it has may been modified by set_tbv_alerts
-        df = project.export_records(format='df')
-
         # Non-compliant visits
         if NC_ALERT in DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by set_tbv_alerts
+            df = project.export_records(format='df')
+
             alerts.set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC,
                                  custom_status_ids)
 
-        # Update REDCap data as it has may been modified by set_nc_alerts
-        df = project.export_records(format='df')
-
         # Next visit
         if NV_ALERT in DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by set_nc_alerts
+            df = project.export_records(format='df')
+
             alerts.set_nv_alerts(project, df, NV_ALERT, NV_ALERT_STRING, ALERT_DATE_FORMAT, DAYS_BEFORE_NV,
                                  DAYS_AFTER_NV, custom_status_ids)
