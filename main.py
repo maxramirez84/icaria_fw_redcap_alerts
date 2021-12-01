@@ -10,7 +10,7 @@ visit at their households."""
 
 from datetime import datetime
 import redcap
-import tokens
+import params
 import alerts
 
 __author__ = "Maximo Ramirez Robles"
@@ -24,50 +24,58 @@ __email__ = "maximo.ramirez@isglobal.org"
 __status__ = "Dev"
 
 if __name__ == '__main__':
-    URL = tokens.URL
-    PROJECTS = tokens.REDCAP_PROJECTS
-    TBV_ALERT = "TBV"
-    TBV_ALERT_STRING = TBV_ALERT + "@{community} AZi/Pbo@{last_azi_date}"
-    CHOICE_SEP = " | "
-    CODE_SEP = ", "
-    REDCAP_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-    ALERT_DATE_FORMAT = "%b %d"
-    DAYS_TO_NC = 28  # Defined by PI as 4 weeks
-    NC_ALERT = "NC"
-    NC_ALERT_STRING = NC_ALERT + "@{community} ({weeks} weeks)"
-    DAYS_BEFORE_NV = 7  # Defined by In-Country Technical Coordinator
-    DAYS_AFTER_NV = DAYS_TO_NC  # Defined by In-Country Technical Coordinator
-    NV_ALERT = "NEXT VISIT"
-    NV_ALERT_STRING = NV_ALERT + ": {return_date}"
-    DEFINED_ALERTS = [TBV_ALERT, NC_ALERT]  # TBV_ALERT, NC_ALERT, NV_ALERT
-
-    for project_key in PROJECTS:
-        project = redcap.Project(URL, PROJECTS[project_key])
+    for project_key in params.PROJECTS:
+        project = redcap.Project(params.URL, params.PROJECTS[project_key])
 
         # Get all records for each ICARIA REDCap project
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         df = project.export_records(format='df')
 
         # Custom status
-        custom_status_ids = alerts.get_record_ids_with_custom_status(df, DEFINED_ALERTS)
+        custom_status_ids = alerts.get_record_ids_with_custom_status(df, params.DEFINED_ALERTS)
 
         # Households to be visited
-        if TBV_ALERT in DEFINED_ALERTS:
-            alerts.set_tbv_alerts(project, df, TBV_ALERT, TBV_ALERT_STRING, REDCAP_DATE_FORMAT, ALERT_DATE_FORMAT,
-                                  CHOICE_SEP, CODE_SEP, custom_status_ids)
+        if params.TBV_ALERT in params.DEFINED_ALERTS:
+            alerts.set_tbv_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                tbv_alert=params.TBV_ALERT,
+                tbv_alert_string=params.TBV_ALERT_STRING,
+                redcap_date_format=params.REDCAP_DATE_FORMAT,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                choice_sep=params.CHOICE_SEP,
+                code_sep=params.CODE_SEP,
+                blocked_records=custom_status_ids
+            )
 
         # Non-compliant visits
-        if NC_ALERT in DEFINED_ALERTS:
+        if params.NC_ALERT in params.DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by set_tbv_alerts
             df = project.export_records(format='df')
 
-            alerts.set_nc_alerts(project, df, NC_ALERT, NC_ALERT_STRING, CHOICE_SEP, CODE_SEP, DAYS_TO_NC,
-                                 custom_status_ids)
+            alerts.set_nc_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                nc_alert=params.NC_ALERT,
+                nc_alert_string=params.NC_ALERT_STRING,
+                choice_sep=params.CHOICE_SEP,
+                code_sep=params.CODE_SEP,
+                days_to_nc=params.DAYS_TO_NC,
+                blocked_records=custom_status_ids
+            )
 
         # Next visit
-        if NV_ALERT in DEFINED_ALERTS:
+        if params.NV_ALERT in params.DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by set_nc_alerts
             df = project.export_records(format='df')
 
-            alerts.set_nv_alerts(project, df, NV_ALERT, NV_ALERT_STRING, ALERT_DATE_FORMAT, DAYS_BEFORE_NV,
-                                 DAYS_AFTER_NV, custom_status_ids)
+            alerts.set_nv_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                nv_alert=params.NV_ALERT,
+                nv_alert_string=params.NV_ALERT_STRING,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_NV,
+                days_after=params.DAYS_AFTER_NV,
+                blocked_records=custom_status_ids
+            )
