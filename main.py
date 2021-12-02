@@ -79,3 +79,18 @@ if __name__ == '__main__':
                 days_after=params.DAYS_AFTER_NV,
                 blocked_records=custom_status_ids
             )
+
+        # End of Follow Up
+        if params.END_FU_ALERT in params.DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by set_nv_alerts
+            df = project.export_records(format='df')
+
+            alerts.set_end_fu_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                end_fu_alert=params.END_FU_ALERT,
+                end_fu_alert_string=params.END_FU_ALERT_STRING,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_END_FU,
+                blocked_records=custom_status_ids
+            )
