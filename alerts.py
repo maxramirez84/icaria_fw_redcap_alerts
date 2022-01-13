@@ -108,10 +108,11 @@ def get_record_ids_nv(redcap_data, days_before, days_after):
     return set(before_today.keys()) & set(after_today.keys())
 
 
-def get_record_ids_end_fu(redcap_data, days_before):
-    """Get the project record ids of the participants who are turning 18 months in days_before days from today. Thus,
-    for every project record, check if, according to her date of birth, she will be more than 18 months in days_before
-    days and the participant wasn't already visited at home for the end of follow up visit.
+def get_record_ids_end_trial_fu(redcap_data, days_before):
+    """ICARIA Clinical Trial F/U: Get the project record ids of the participants who are turning 18 months in
+    days_before days from today. Thus, for every project record, check if, according to her date of birth, she will be
+    more than 18 months in days_before days and the participant wasn't already visited at home for the end of follow up
+    visit.
 
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
@@ -149,6 +150,49 @@ def get_record_ids_end_fu(redcap_data, days_before):
         about_18m_not_seen = about_18m_not_seen.difference(record_ids_seen)
 
     return about_18m_not_seen
+
+
+def get_record_ids_end_cohort_fu(redcap_data, days_before):
+    """ICARIA Cohort Study F/U: Get the project record ids of the participants who are turning 15 months in days_before
+    days from today. Thus, for every project record, check if, according to her date of birth, she will be more than 15
+    months in days_before days and the participant wasn't already visited for the end of follow up visit.
+
+    :param redcap_data: Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+    :param days_before: Number of days before the participant turns 15 months to start alerting that about the need of
+                        the end of follow up visit
+    :type days_before: int
+
+    :return: Array of record ids representing those study participants that will be flagged because they will turn 15
+    months of age in the days indicated in the days_before parameter and they have not been visited at home yet for the
+    end of the trial follow up.
+    :rtype: pandas.Int64Index
+    """
+
+    # Cast child_dob column from str to date
+    x = redcap_data
+    x['child_dob'] = pandas.to_datetime(x['child_dob'])
+    dobs = x.groupby('record_id')['child_dob'].max()
+    dobs = dobs[dobs.notnull()]
+
+    # Filter those participants who are about to turn to 18 months
+    about_15m = dobs[datetime.today().year - dobs.dt.year >= 1]  # Filter those older than 1 year old
+    about_15m = about_15m[datetime.today().month - about_15m.dt.month >= 2]  # Filter those older than 14 months old
+    about_15m = about_15m[about_15m.dt.day - datetime.today().day <= days_before]  # Filter those that will turn 15m
+
+    # Remove those participants who have already been visited for the end of the trial follow up
+    finalized = x.query(
+        "redcap_event_name == 'after_mrv_2_arm_1' and "
+        # "redcap_repeat_instrument == 'household_follow_up' and "
+        "tests_complete == 2"
+    )
+
+    about_15m_not_seen = about_15m.index
+    if finalized is not None:
+        record_ids_seen = finalized.index.get_level_values('record_id')
+        about_15m_not_seen = about_15m_not_seen.difference(record_ids_seen)
+
+    return about_15m_not_seen
 
 
 def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_string, redcap_date_format,
@@ -271,53 +315,57 @@ def build_nv_alerts_df(redcap_data, record_ids, alert_string, alert_date_format)
     return data_to_import
 
 
-def build_end_fu_alerts_df(redcap_data, record_ids, alert_string, alert_date_format):
-    """Build dataframe with record ids and dates when they turn 18 months of every study participant who is
-    turning 18 months in the next days or she has already 18 months but she hasn't been visited for the end of the trial
-    follow up.
+def build_end_fu_alerts_df(redcap_data, record_ids, alert_string, alert_date_format, months):
+    """Build dataframe with record ids and dates when they turn the specified months of every study participant who is
+    turning the specified months in the next days or she has already the specified months but she hasn't been visited
+    for the end of the trial follow up.
 
     :param redcap_data:Exported REDCap project data
     :type redcap_data: pandas.DataFrame
     :param record_ids: Array of record ids representing those study participants that require the end of follow up
                        household visit
     :type record_ids: pandas.Int64Index
-    :param alert_string: String with the alert to be setup containing one placeholders (18 months birthday)
+    :param alert_string: String with the alert to be setup containing one placeholders (X months birthday)
     :type alert_string: str
-    :param alert_date_format: Format of the date of the 18 months birthday to be displayed in the alert
+    :param alert_date_format: Format of the date of the X months birthday to be displayed in the alert
     :type alert_date_format: str
+    :param months: Number of months of age when participants end follow up
+    :type months: int
 
-    :return: A dataframe with the columns 18 months birthday and child_fu_status in which each row is identified by the
+    :return: A dataframe with the columns months birthday and child_fu_status in which each row is identified by the
     REDCap record id and represents a study participant who is supposed to be visited for the end of the follow up.
     :rtype: pandas.DataFrame
     """
     # Append to record ids, the 18 moths birthday of the participant
-    birthday_18m = redcap_data.loc[record_ids, ['child_dob']]
-    birthday_18m = birthday_18m.groupby('record_id')['child_dob'].max()  # To move from a DataFrame to a Series
-    birthday_18m = birthday_18m.apply(lambda dob: dob + relativedelta(months=+18))  # Add 18 months to dates of birth
-    birthday_18m = birthday_18m.apply(lambda x: x.strftime(alert_date_format))
+    birthday = redcap_data.loc[record_ids, ['child_dob']]
+    birthday = birthday.groupby('record_id')['child_dob'].max()  # To move from a DataFrame to a Series
+    birthday = birthday.apply(lambda dob: dob + relativedelta(months=+months))  # Add specified months to dob
+    birthday = birthday.apply(lambda x: x.strftime(alert_date_format))
 
     # Transform data to be imported into the child_status_fu variable into the REDCap project
-    data = {'birthday_18m': birthday_18m}
+    data = {'birthday': birthday}
     data_to_import = pandas.DataFrame(data)
     if not data_to_import.empty:
-        data_to_import['child_fu_status'] = data_to_import[['birthday_18m']].apply(
-            lambda x: alert_string.format(birthday_18m=x[0]), axis=1)
+        data_to_import['child_fu_status'] = data_to_import[['birthday']].apply(
+            lambda x: alert_string.format(birthday=x[0]), axis=1)
 
     return data_to_import
 
 
-def get_active_alerts(redcap_data, alert):
+def get_active_alerts(redcap_data, alert, fu_status_event):
     """Get the project records ids of the participants with an activated alert.
 
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
     :param alert: String representing the type of alerts to be retrieved
     :type alert: str
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
 
     :return: Array containing the record ids of the study participants who have an activated alert.
     :rtype: pandas.Int64Index
     """
-    active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
+    active_alerts = redcap_data.loc[(slice(None), fu_status_event), 'child_fu_status']
     active_alerts = active_alerts[active_alerts.notnull()]
     if active_alerts.empty:
         return None
@@ -328,18 +376,20 @@ def get_active_alerts(redcap_data, alert):
     return active_alerts.keys()
 
 
-def get_record_ids_with_custom_status(redcap_data, defined_alerts):
+def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_event):
     """Get the project records ids of the participants with an custom status set up in the child_fu_status field.
 
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
     :param defined_alerts: List of strings representing the type of the defined alerts
     :type defined_alerts: list
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
 
     :return: Array containing the record ids of those participants with a custom follow up status
     :rtype: pandas.Int64Index
     """
-    active_alerts = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), 'child_fu_status']
+    active_alerts = redcap_data.loc[(slice(None), fu_status_event), 'child_fu_status']
     active_alerts = active_alerts[active_alerts.notnull()]
     if active_alerts.empty:
         return None
@@ -355,7 +405,7 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts):
 
 # TO BE VISITED
 def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string, redcap_date_format,
-                   alert_date_format, choice_sep, code_sep, blocked_records):
+                   alert_date_format, choice_sep, code_sep, blocked_records, fu_status_event):
     """Remove the Household to be visited alerts of those participants that have been already visited and setup new
     alerts for these others that took recently AZi/Pbo and require a household visit.
 
@@ -378,6 +428,8 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     :type code_sep: str
     :param blocked_records: Array with the record ids that will be ignored during the alerts setup
     :type blocked_records: pandas.Int64Index
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
 
     :return: None
     """
@@ -390,7 +442,7 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
         records_to_be_visited = records_to_be_visited.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, tbv_alert)
+    records_with_alerts = get_active_alerts(redcap_project_df, tbv_alert, fu_status_event)
 
     # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
     # activated alerts already visited)
@@ -421,7 +473,7 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
 
 # NON-COMPLIANT
 def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, choice_sep, code_sep, days_to_nc,
-                  blocked_records):
+                  blocked_records, fu_status_event):
     """Remove the Non-compliant alerts of those participants that have been already visited and setup new alerts for
     these others that become non-compliant recently.
 
@@ -442,6 +494,8 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
     :type days_to_nc: int
     :param blocked_records: Array with the record ids that will be ignored during the alerts setup
     :type blocked_records: pandas.Int64Index
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
 
     :return: None
     """
@@ -454,7 +508,7 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
         records_to_be_visited = records_to_be_visited.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, nc_alert)
+    records_with_alerts = get_active_alerts(redcap_project_df, nc_alert, fu_status_event)
 
     # Check which of the records with alerts are not anymore in the records to be visited (i.e. participants with an
     # activated alerts already visited)
@@ -483,7 +537,7 @@ def set_nc_alerts(redcap_project, redcap_project_df, nc_alert, nc_alert_string, 
 
 # NEXT VISIT
 def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, alert_date_format, days_before,
-                  days_after, blocked_records):
+                  days_after, blocked_records, fu_status_event):
     """Remove the Next Visit alerts of those participants that have already come to the health facility and setup new
     alerts for these others that enter in the flag days_before-days_after interval.
 
@@ -503,6 +557,8 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     :type days_after: int
     :param blocked_records: Array with the record ids that will be ignored during the alerts setup
     :type blocked_records: pandas.Int64Index
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
 
     :return: None
     """
@@ -523,7 +579,7 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     records_to_flag = records_to_flag.difference(records_to_be_visited)
 
     # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, nv_alert)
+    records_with_alerts = get_active_alerts(redcap_project_df, nv_alert, fu_status_event)
 
     # Check which of the records with alerts are not anymore in the records to flag (i.e. participants with an
     # activated alert that already came to the health facility or they become non-compliant)
@@ -547,7 +603,7 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     print("[NEXT VISIT] Alerts setup: {}".format(response.get('count')))
 
 
-def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert):
+def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert, fu_status_event):
     """Remove the Next Visit alerts of those participants who have this alert already setup.
 
     :param redcap_project: A REDCap project class to communicate with the REDCap API
@@ -556,12 +612,14 @@ def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert):
     :type redcap_project_df: pandas.DataFrame
     :param nv_alert: Code of the Next Visit alerts
     :type nv_alert: str
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
 
     :return: None
     """
 
     # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, nv_alert)
+    records_with_alerts = get_active_alerts(redcap_project_df, nv_alert, fu_status_event)
 
     # Remove all NEXT VISIT alerts
     if records_with_alerts is not None:
@@ -575,9 +633,9 @@ def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert):
 
 # END FOLLOW UP
 def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_alert_string, alert_date_format,
-                      days_before, blocked_records):
-    """Remove the End of F/U alerts of those participants that haven been already visited at home for the end of the
-    the trial follow up. Setup alerts for those participants who are going to turn 18 months in days_before days.
+                      days_before, blocked_records, study, fu_status_event, months):
+    """Remove the End of F/U alerts of those participants that haven been already visited for the end of the
+    the trial/study follow up. Setup alerts for those participants who are going to end follow up in days_before days.
 
     :param redcap_project: A REDCap project class to communicate with the REDCap API
     :type redcap_project: redcap.Project
@@ -593,19 +651,30 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
     :type days_before: int
     :param blocked_records: Array with the record ids that will be ignored during the alerts setup
     :type blocked_records: pandas.Int64Index
+    :param study: String indicating the study where to control the end of follow up [TRIAL, COHORT]
+    :type study: str
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
+    :param months: Number of months of age when participants end follow up
+    :type months: int
 
     :return: None
     """
 
-    # Get the project records ids of the participants who are turning 18 months in days_before days from today
-    records_to_flag = get_record_ids_end_fu(redcap_project_df, days_before)
+    records_to_flag = []
+    if study == "TRIAL":
+        # Get the project records ids of the participants who are turning 18 months in days_before days from today
+        records_to_flag = get_record_ids_end_trial_fu(redcap_project_df, days_before)
+    if study == "COHORT":
+        # Get the project records ids of the participants who are turning 15 months in days_before days from today
+        records_to_flag = get_record_ids_end_cohort_fu(redcap_project_df, days_before)
 
     # Remove those ids that must be ignored
     if blocked_records is not None:
         records_to_flag = records_to_flag.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, end_fu_alert)
+    records_with_alerts = get_active_alerts(redcap_project_df, end_fu_alert, fu_status_event)
 
     # Check which of the records with alerts are not anymore in the records to flag (i.e. participants who were already
     # visited at home for the end of the trial follow up
@@ -620,7 +689,13 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
         print("[END F/U] Alerts removal: None")
 
     # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-    to_import_df = build_end_fu_alerts_df(redcap_project_df, records_to_flag, end_fu_alert_string, alert_date_format)
+    to_import_df = build_end_fu_alerts_df(
+        redcap_data=redcap_project_df,
+        record_ids=records_to_flag,
+        alert_string=end_fu_alert_string,
+        alert_date_format=alert_date_format,
+        months=months
+    )
 
     # Import data into the REDCap project: Alerts setup
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
