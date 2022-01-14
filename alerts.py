@@ -175,7 +175,8 @@ def get_record_ids_end_trial_fu(redcap_data, days_before):
     # First: Filter those older than 17 months old
     about_18m = dobs[dobs.apply(calculate_age_months) >= 17]
     # Second: Filter those that will turn 18m
-    about_18m = about_18m[about_18m.apply(days_to_birthday) < days_before]
+    if about_18m.size > 0:
+        about_18m = about_18m[about_18m.apply(days_to_birthday) < days_before]
 
     # Remove those participants who have already been visited and seen at home for the end of the trial follow up
     finalized = x.query(
@@ -219,7 +220,8 @@ def get_record_ids_end_cohort_fu(redcap_data, days_before):
     # First: Filter those older than 14 months old
     about_15m = dobs[dobs.apply(calculate_age_months) >= 14]
     # Second: Filter those that will turn 15m
-    about_15m = about_15m[about_15m.apply(days_to_birthday) < days_before]
+    if about_15m.size > 0:
+        about_15m = about_15m[about_15m.apply(days_to_birthday) < days_before]
 
     # Remove those participants who have already been visited for the end of the trial follow up
     finalized = x.query(
