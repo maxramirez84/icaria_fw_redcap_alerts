@@ -119,6 +119,34 @@ def get_record_ids_nv(redcap_data, days_before, days_after):
     return set(before_today.keys()) & set(after_today.keys())
 
 
+def calculate_age_months(dob):
+    """Compute the age in years from a date of birth.
+
+    :param dob: Date of birth
+    :type dob: Datetime
+
+    :return: Date of birth in years
+    :rtype: int
+    """
+    today = datetime.today()
+    months = (today.year - dob.year) * 12 + (today.month - dob.month)
+
+    return months
+
+
+def days_to_birthday(dob):
+    """For a date which is about to its birthday, i.e. this month, compute the number of days to the birthday.
+
+    :param dob: Date of birth
+    :type dob: Datetime
+
+    :return: Days to birthday
+    :rtype: int
+    """
+    today = datetime.today()
+    return (datetime(today.year, today.month, dob.day) - today).days
+
+
 def get_record_ids_end_trial_fu(redcap_data, days_before):
     """ICARIA Clinical Trial F/U: Get the project record ids of the participants who are turning 18 months in
     days_before days from today. Thus, for every project record, check if, according to her date of birth, she will be
@@ -144,9 +172,10 @@ def get_record_ids_end_trial_fu(redcap_data, days_before):
     dobs = dobs[dobs.notnull()]
 
     # Filter those participants who are about to turn to 18 months
-    about_18m = dobs[datetime.today().year - dobs.dt.year >= 1]  # Filter those older than 1 year old
-    about_18m = about_18m[abs(datetime.today().month - about_18m.dt.month) >= 5]  # Filter those older than 17 months old
-    about_18m = about_18m[about_18m.dt.day - datetime.today().day <= days_before]  # Filter those that will turn 18m
+    # First: Filter those older than 17 months old
+    about_18m = dobs[dobs.apply(calculate_age_months) >= 17]
+    # Second: Filter those that will turn 18m
+    about_18m = about_18m[about_18m.apply(days_to_birthday) < days_before]
 
     # Remove those participants who have already been visited and seen at home for the end of the trial follow up
     finalized = x.query(
@@ -186,10 +215,11 @@ def get_record_ids_end_cohort_fu(redcap_data, days_before):
     dobs = x.groupby('record_id')['child_dob'].max()
     dobs = dobs[dobs.notnull()]
 
-    # Filter those participants who are about to turn to 18 months
-    about_15m = dobs[datetime.today().year - dobs.dt.year >= 1]  # Filter those older than 1 year old
-    about_15m = about_15m[datetime.today().month - about_15m.dt.month >= 2]  # Filter those older than 14 months old
-    about_15m = about_15m[about_15m.dt.day - datetime.today().day <= days_before]  # Filter those that will turn 15m
+    # Filter those participants who are about to turn to 15 months
+    # First: Filter those older than 14 months old
+    about_15m = dobs[dobs.apply(calculate_age_months) >= 14]
+    # Second: Filter those that will turn 15m
+    about_15m = about_15m[about_15m.apply(days_to_birthday) < days_before]
 
     # Remove those participants who have already been visited for the end of the trial follow up
     finalized = x.query(
