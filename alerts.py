@@ -76,7 +76,18 @@ def get_record_ids_nc(redcap_data, days_to_nc):
     already_visited = last_nc_visits > last_return_dates
     days_delayed = datetime.today() - last_return_dates[~already_visited]
 
-    return days_delayed[days_delayed > timedelta(days=days_to_nc)].keys()
+    # Remove those participants who have already completed the EPI schedule, so AZi/Pbo3 already received
+    completed_epi = x.query(
+        "redcap_event_name == 'epimvr2_v6_iptisp6_arm_1' and "
+        "intervention_complete == 2"
+    )
+
+    non_compliants = days_delayed[days_delayed > timedelta(days=days_to_nc)].keys()
+    if completed_epi is not None:
+        record_ids_completed_epi = completed_epi.index.get_level_values('record_id')
+        non_compliants = non_compliants.difference(record_ids_completed_epi)
+
+    return non_compliants
 
 
 def get_record_ids_nv(redcap_data, days_before, days_after):
@@ -134,7 +145,7 @@ def get_record_ids_end_trial_fu(redcap_data, days_before):
 
     # Filter those participants who are about to turn to 18 months
     about_18m = dobs[datetime.today().year - dobs.dt.year >= 1]  # Filter those older than 1 year old
-    about_18m = about_18m[datetime.today().month - about_18m.dt.month >= 5]  # Filter those older than 17 months old
+    about_18m = about_18m[abs(datetime.today().month - about_18m.dt.month) >= 5]  # Filter those older than 17 months old
     about_18m = about_18m[about_18m.dt.day - datetime.today().day <= days_before]  # Filter those that will turn 18m
 
     # Remove those participants who have already been visited and seen at home for the end of the trial follow up

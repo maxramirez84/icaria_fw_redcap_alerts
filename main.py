@@ -58,7 +58,9 @@ if __name__ == '__main__':
         # Non-compliant visits
         if params.NC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by set_tbv_alerts
-            df = project.export_records(format='df')
+            fields = project.export_field_names()
+            field_names = [field['export_field_name'] for field in fields]
+            df = project.export_records(format='df', fields=field_names)
 
             alerts.set_nc_alerts(
                 redcap_project=project,
