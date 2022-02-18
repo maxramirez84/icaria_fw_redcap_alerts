@@ -56,7 +56,7 @@ def get_record_ids_nc(redcap_data, days_to_nc):
 
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
-    :param days_to_nc: Number of days from the return date defined during the last visit to the HF to be considered as
+    :param days_to_nc: Number of days since the return date defined during the last visit to the HF to be considered as
                        a non-compliant participant
     :type days_to_nc: int
 
@@ -193,6 +193,54 @@ def get_record_ids_end_trial_fu(redcap_data, days_before):
         about_18m_not_seen = about_18m_not_seen.difference(record_ids_seen)
 
     return about_18m_not_seen
+
+
+def get_record_ids_ms(redcap_data, days_after_epi, excluded_epi_visits):
+    """Get the project record ids of the participants requiring a contact to know their vital status, i.e. if they are
+    alive or death. Thus, for every project record, check if the date of the last EPI visit was more than some weeks ago
+    and the participant hasn't a mortality surveillance contact yet.
+
+    :param redcap_data: Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+    :param days_after_epi: Number of days since the last visit date when the mortality surveillance contact must be done
+    :type days_after_epi: int
+    :param excluded_epi_visits: List of EPI visits that are not considered in the mortality surveillance schema
+    :type excluded_epi_visits: list
+
+    :return: Array of record ids representing those study participants that require a contact to know their vital status
+    (alive or death)
+    :rtype: pandas.Int64Index
+    """
+
+    # Cast int_date and a1m_date columns from str to date and get the last EPI visit and mortality surveillance dates
+    x = redcap_data
+    x['int_date'] = pandas.to_datetime(x['int_date'])
+    x['a1m_date'] = pandas.to_datetime(x['a1m_date'])
+
+    # Remove EPI visits not considered in the mortality surveillance schema
+    x = x.query("redcap_event_name not in @excluded_epi_visits")
+
+    last_visit_dates = x.groupby('record_id')['int_date'].max()
+    last_visit_dates = last_visit_dates[last_visit_dates.notnull()]
+    last_ms_contacts = x.groupby('record_id')['a1m_date'].max()
+    last_ms_contacts = last_ms_contacts[last_visit_dates.keys()]
+
+    already_contacted = last_ms_contacts > last_visit_dates
+    days_since_last_epi_visit = datetime.today() - last_visit_dates[~already_contacted]
+
+    # Remove those participants who have already completed the study follow up, so household visit at 18th month of age
+    # has been carried out
+    completed_fu = x.query(
+        "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
+        "household_follow_up_complete == 2"
+    )
+
+    to_be_surveyed = days_since_last_epi_visit[days_since_last_epi_visit > timedelta(days=days_after_epi)].keys()
+    if completed_fu is not None:
+        record_ids_completed_fu = completed_fu.index.get_level_values('record_id')
+        to_be_surveyed = to_be_surveyed.difference(record_ids_completed_fu)
+
+    return to_be_surveyed
 
 
 def get_record_ids_end_cohort_fu(redcap_data, days_before):
@@ -393,6 +441,44 @@ def build_end_fu_alerts_df(redcap_data, record_ids, alert_string, alert_date_for
     if not data_to_import.empty:
         data_to_import['child_fu_status'] = data_to_import[['birthday']].apply(
             lambda x: alert_string.format(birthday=x[0]), axis=1)
+
+    return data_to_import
+
+
+def build_ms_alerts_df(redcap_data, record_ids, alert_string, event_names):
+    """Build dataframe with record ids, last EPI visit and follow up status of every study participant who requires to
+    be contacted to know on her vital status (alive or death).
+
+    :param redcap_data:Exported REDCap project data
+    :type redcap_data: pandas.DataFrame
+    :param record_ids: Array of record ids representing those participants that require to be contacted to know their
+                       vital status (alive or death)
+    :type record_ids: pandas.Int64Index
+    :param alert_string: String with the alert to be setup containing one placeholder (last EPI visit)
+    :type alert_string: str
+    :param event_names: Dictionary with the event codes attached to each event name
+    :type: dict
+
+    :return: A dataframe with the columns last EPI visit and child_fu_status in which each row is identified by the
+    REDCap record id and represents a study participant to be contacted to know her vital status (alive or death).
+    :rtype: pandas.DataFrame
+    """
+    # Append to record ids, the name of the last EPI visit
+    last_epi_visit = redcap_data.loc[record_ids, 'int_date']
+    last_epi_visit = last_epi_visit[last_epi_visit.notnull()]
+    last_epi_visit = pandas.to_datetime(last_epi_visit)
+    last_epi_visit = last_epi_visit.reset_index()
+    idx = last_epi_visit.groupby('record_id')['int_date'].transform(max) == last_epi_visit['int_date']
+    last_epi_visit = last_epi_visit[idx]
+    last_epi_visit.index = last_epi_visit['record_id']
+    last_epi_visit = last_epi_visit['redcap_event_name'].replace(event_names)
+
+    # Transform data to be imported into the child_status_fu variable into the REDCap project
+    data = {'last_epi_visit': last_epi_visit}
+    data_to_import = pandas.DataFrame(data)
+    if not data_to_import.empty:
+        data_to_import['child_fu_status'] = data_to_import[['last_epi_visit']].apply(
+            lambda x: alert_string.format(last_epi_visit=x[0]), axis=1)
 
     return data_to_import
 
@@ -616,6 +702,7 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     if blocked_records is not None:
         records_to_flag = records_to_flag.difference(blocked_records)
 
+    # TODO: This should be controlled in main by the order in which alerts are flagged.
     # Get the project records ids of the participants requiring a household visit after AZi administration. The TO BE
     # VISITED alert is higher priority than the NEXT VISIT alerts
     records_to_be_visited = get_record_ids_tbv(redcap_project_df)
@@ -747,3 +834,68 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
                       for rec_id, participant in to_import_df.iterrows()]
     response = redcap_project.import_records(to_import_dict)
     print("[END F/U] Alerts setup: {}".format(response.get('count')))
+
+
+# MORTALITY SURVEILLANCE
+def set_ms_alerts(redcap_project, redcap_project_df, ms_alert, ms_alert_string, choice_sep, code_sep, days_after_epi,
+                  event_names, excluded_epi_visits, blocked_records, fu_status_event):
+    """Remove the mortality surveillance alerts of those participants that have been already contacted and setup new
+    alerts for these others in which one month has passed since the last EPI visit.
+
+    :param redcap_project: A REDCap project class to communicate with the REDCap API
+    :type redcap_project: redcap.Project
+    :param redcap_project_df: Data frame containing all data exported from the REDCap project
+    :type redcap_project_df: pandas.DataFrame
+    :param ms_alert: Code of the mortality surveillance alerts
+    :type ms_alert: str
+    :param ms_alert_string: String with the alert to be setup
+    :type ms_alert_string: str
+    :param choice_sep: Character used by REDCap to separate choices in a categorical field (radio, dropdown) when
+                       exporting meta-data
+    :type choice_sep: str
+    :param code_sep: Character used by REDCap to separated code and label in every choice when exporting meta-data
+    :type code_sep: str
+    :param days_after_epi: Days after the last EPI visit when the mortality surveillance must ne done
+    :type days_after_epi: int
+    :param event_names: Dictionary in which the keys are the REDCap event codes and values the event names
+    :type event_names: dict
+    :param excluded_epi_visits: List of EPI visits not considered in the mortality surveillance schema
+    :type excluded_epi_visits: list
+    :param blocked_records: Array with the record ids that will be ignored during the alerts setup
+    :type blocked_records: pandas.Int64Index
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
+
+    :return: None
+    """
+
+    # Get the project records ids of the participants requiring a contact to know their vital status
+    records_to_be_contacted = get_record_ids_ms(redcap_project_df, days_after_epi, excluded_epi_visits)
+
+    # Remove those ids that must be ignored
+    if blocked_records is not None:
+        records_to_be_contacted = records_to_be_contacted.difference(blocked_records)
+
+    # Get the project records ids of the participants with an active alert
+    records_with_alerts = get_active_alerts(redcap_project_df, ms_alert, fu_status_event)
+
+    # Check which of the records with alerts are not anymore in the records to be contacted (i.e. participants with an
+    # activated alerts already contacted)
+    if records_with_alerts is not None:
+        alerts_to_be_removed = records_with_alerts.difference(records_to_be_contacted)
+
+        # Import data into the REDCap project: Alerts removal
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
+        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        print("[MORTALITY-SURVEILLANCE] Alerts removal: {}".format(response.get('count')))
+    else:
+        print("[MORTALITY-SURVEILLANCE] Alerts removal: None")
+
+    # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
+    to_import_df = build_ms_alerts_df(redcap_project_df, records_to_be_contacted, ms_alert_string, event_names)
+
+    # Import data into the REDCap project: Alerts setup
+    to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                      for rec_id, participant in to_import_df.iterrows()]
+    response = redcap_project.import_records(to_import_dict)
+    print("[MORTALITY-SURVEILLANCE] Alerts setup: {}".format(response.get('count')))

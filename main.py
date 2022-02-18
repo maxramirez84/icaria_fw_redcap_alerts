@@ -40,6 +40,10 @@ if __name__ == '__main__':
             fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
         )
 
+        # ALERT SYSTEM: The order of the alerts here matters. The first alert to be flagged has the lowest priority.
+        # I.e. they will be overwritten by the following alerts if the flagging condition is met for more than one
+        # alert.
+
         # Households to be visited
         if params.TBV_ALERT in params.TRIAL_DEFINED_ALERTS:
             alerts.set_tbv_alerts(
@@ -55,9 +59,57 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
 
+        # Next visit
+        if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df')
+
+            alerts.set_nv_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                nv_alert=params.NV_ALERT,
+                nv_alert_string=params.NV_ALERT_STRING,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_NV,
+                days_after=params.DAYS_AFTER_NV,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+            )
+
+        # Mortality surveillance visits
+        if params.MS_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            fields = project.export_field_names()
+            field_names = [field['export_field_name'] for field in fields]
+            df = project.export_records(format='df', fields=field_names)
+
+            # mramirez - 20220217: The group of participants whose last EPI visit was more than one month ago (MS) also
+            # includes the non-compliant participants recently contacted but that they have not come to the HF after
+            # this contact. Therefore, those participants will be also flagged to be contacted through this new
+            # procedure, even though they could have been contacted recently. In order to avoid re-contacting as less
+            # participants as possible, only recruited participants since 2021-11-29 will be considered, i.e. recruited
+            # participants 2.5 months ago.
+            recruited_since = df.query("screening_date >'2021-11-29 00:00:00'")
+            record_ids = recruited_since.index.get_level_values(0)
+            df = df.query("record_id in @record_ids")
+
+            alerts.set_ms_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                ms_alert=params.MS_ALERT,
+                ms_alert_string=params.MS_ALERT_STRING,
+                choice_sep=params.CHOICE_SEP,
+                code_sep=params.CODE_SEP,
+                days_after_epi=params.DAYS_AFTER_EPI,
+                event_names=params.TRIAL_EPI_EVENT_NAMES,
+                excluded_epi_visits=params.MS_EXCLUDED_EPI_VISITS,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+            )
+
         # Non-compliant visits
         if params.NC_ALERT in params.TRIAL_DEFINED_ALERTS:
-            # Update REDCap data as it has may been modified by set_tbv_alerts
+            # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
             df = project.export_records(format='df', fields=field_names)
@@ -74,26 +126,9 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
 
-        # Next visit
-        if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
-            # Update REDCap data as it has may been modified by set_nc_alerts
-            df = project.export_records(format='df')
-
-            alerts.set_nv_alerts(
-                redcap_project=project,
-                redcap_project_df=df,
-                nv_alert=params.NV_ALERT,
-                nv_alert_string=params.NV_ALERT_STRING,
-                alert_date_format=params.ALERT_DATE_FORMAT,
-                days_before=params.DAYS_BEFORE_NV,
-                days_after=params.DAYS_AFTER_NV,
-                blocked_records=custom_status_ids,
-                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
-            )
-
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
-            # Update REDCap data as it has may been modified by set_nv_alerts
+            # Update REDCap data as it has may been modified by previous alerts
             df = project.export_records(format='df')
 
             alerts.set_end_fu_alerts(

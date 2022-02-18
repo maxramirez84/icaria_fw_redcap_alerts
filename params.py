@@ -9,6 +9,15 @@ CODE_SEP = ", "
 REDCAP_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 TRIAL_CHILD_FU_STATUS_EVENT = "epipenta1_v0_recru_arm_1"
 COHORT_CHILD_FU_STATUS_EVENT = "ipti_1__10_weeks_r_arm_1"
+TRIAL_EPI_EVENT_NAMES = {
+    'epipenta1_v0_recru_arm_1': 'PENTA1',
+    'epipenta2_v1_iptis_arm_1': 'PENTA2',
+    'epipenta3_v2_iptis_arm_1': 'PENTA3',
+    'epivita_v3_iptisp3_arm_1': 'VITA-6M',
+    'epimvr1_v4_iptisp4_arm_1': 'MRV1',
+    'epivita_v5_iptisp5_arm_1': 'VITA-12M',
+    'epimvr2_v6_iptisp6_arm_1': 'MRV2'
+}
 
 # Alerts general parameters
 ALERT_DATE_FORMAT = "%b %d"
@@ -18,7 +27,7 @@ TBV_ALERT = "TBV"
 TBV_ALERT_STRING = TBV_ALERT + "@{community} AZi/Pbo@{last_azi_date}"
 
 # NON-COMPLIANT ALERT
-DAYS_TO_NC = 28  # Defined by PI as 4 weeks
+DAYS_TO_NC = 28  # Defined by PI as 4 weeks (after expected return date)
 NC_ALERT = "NC"
 NC_ALERT_STRING = NC_ALERT + "@{community} ({weeks} weeks)"
 
@@ -35,6 +44,12 @@ END_FU_ALERT_STRING = END_FU_ALERT + ": {birthday}"
 END_FU_TRIAL = 18   # By protocol
 END_FU_COHORT = 15  # By protocol
 
-# ENABLED ALERTS: Subset of [TBV_ALERT, NC_ALERT, NV_ALERT, END_FU_ALERT]
-TRIAL_DEFINED_ALERTS = [TBV_ALERT, NC_ALERT, END_FU_ALERT]
+# MORTALITY SURVEILLANCE
+DAYS_AFTER_EPI = 30  # Defined by PI as 1 month (after any EPI visit since Penta3 - included)
+MS_ALERT = "SURVEILLANCE AFTER"
+MS_ALERT_STRING = MS_ALERT + " {last_epi_visit}"
+MS_EXCLUDED_EPI_VISITS = ['epipenta1_v0_recru_arm_1', 'epipenta2_v1_iptis_arm_1']  # Defined by In-country Tech. Coord.
+
+# ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
+TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 COHORT_DEFINED_ALERTS = [END_FU_ALERT]
