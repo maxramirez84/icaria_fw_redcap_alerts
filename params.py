@@ -53,3 +53,8 @@ MS_EXCLUDED_EPI_VISITS = ['epipenta1_v0_recru_arm_1', 'epipenta2_v1_iptis_arm_1'
 # ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 COHORT_DEFINED_ALERTS = [END_FU_ALERT]
+
+# DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
+ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
+                      'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen',
+                      'household_follow_up_complete', 'a1m_date', 'comp_date']
