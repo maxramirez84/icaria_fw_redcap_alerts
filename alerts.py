@@ -816,8 +816,8 @@ def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert, fu_status_even
 
 
 # END FOLLOW UP
-def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_alert_string, completed_alert_string, alert_date_format,
-                      days_before, blocked_records, study, fu_status_event, months):
+def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_alert_string, alert_date_format,
+                      days_before, blocked_records, study, fu_status_event, months,completed_alert_string =None):
     """Remove the End of F/U alerts of those participants that haven been already visited for the end of the
     the trial/study follow up. Setup alerts for those participants who are going to end follow up in days_before days.
         
@@ -889,13 +889,14 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
 
     # COMPLETED PARTICIPANTS ALERT PART
     # BASED ON THE
-    to_import_df=pandas.DataFrame(index=records_completed,columns=['child_fu_status'])
-    to_import_df['child_fu_status'] = completed_alert_string
-    # Import data into the REDCap project: Alerts setup
-    to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
-                      for rec_id, participant in to_import_df.iterrows()]
-    response = redcap_project.import_records(to_import_dict)
-    print("[COMPLETED PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
+    if completed_alert_string is not None:
+        to_import_df=pandas.DataFrame(index=records_completed,columns=['child_fu_status'])
+        to_import_df['child_fu_status'] = completed_alert_string
+        # Import data into the REDCap project: Alerts setup
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                          for rec_id, participant in to_import_df.iterrows()]
+        response = redcap_project.import_records(to_import_dict)
+        print("[COMPLETED PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
 
 
 # MORTALITY SURVEILLANCE
