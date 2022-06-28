@@ -4,11 +4,12 @@ household visit after AZi/Pbo administration or a Non-Compliant visit. In the co
 household visit is scheduled few days after the administration of the investigational product (azithromycin in this
 case). Moreover, if study participants are not coming to the scheduled study visits, another household visit will be
 scheduled to capture their status. This script is computing regularly which of the participants requires a household or
-Non-Compliant visit. This requirement is saved into an eCRF variable in the Screening DCI. This variable will be setup
+Non-Com<pliant visit. This requirement is saved into an eCRF variable in the Screening DCI. This variable will be setup
 as part of the REDCap custom record label. Like this, field workers will see in a glance which participants they need to
 visit at their households."""
 
 from datetime import datetime
+import pandas as pd
 import redcap
 import params
 import alerts
@@ -31,7 +32,7 @@ if __name__ == '__main__':
         # Get all records for each ICARIA REDCap project (TRIAL)
         print("[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
-        df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+        df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
         # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
@@ -58,12 +59,10 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-
         # Next visit
         if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
-
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
             alerts.set_nv_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
@@ -75,13 +74,12 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-
         # Mortality surveillance visits
         if params.MS_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             # mramirez - 20220217: The group of participants whose last EPI visit was more than one month ago (MS) also
             # includes the non-compliant participants recently contacted but that they have not come to the HF after
@@ -106,13 +104,12 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-
         # Non-compliant visits
         if params.NC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_nc_alerts(
                 redcap_project=project,
@@ -126,16 +123,34 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
 
+
+        # MRV2 VISIT ALERT. 15 MONTH OF AGE
+        if params.MRV2_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+
+            alerts.set_mrv2_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                mrv2_alert=params.MRV2_ALERT,
+                mrv2_alert_string=params.MRV2_ALERT_STRING,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_MRV2,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
+                months=params.MRV2_MONTHS
+            )
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_end_fu_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
                 end_fu_alert=params.END_FU_ALERT,
                 end_fu_alert_string=params.END_FU_ALERT_STRING,
+                completed_alert_string= params.COMPLETION_STRING,
                 alert_date_format=params.ALERT_DATE_FORMAT,
                 days_before=params.DAYS_BEFORE_END_FU,
                 blocked_records=custom_status_ids,
@@ -144,8 +159,12 @@ if __name__ == '__main__':
                 months=params.END_FU_TRIAL
             )
 
+
+
+
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
+
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
 
         # Get all records for each ICARIA REDCap project (COHORT)
@@ -153,7 +172,7 @@ if __name__ == '__main__':
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         fields = project.export_field_names()
         field_names = [field['export_field_name'] for field in fields]
-        df = project.export_records(format='df', fields=field_names)
+        df = project.export_records(format_type='df', fields=field_names)
 
         # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
