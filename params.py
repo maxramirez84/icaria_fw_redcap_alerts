@@ -51,6 +51,7 @@ MS_ALERT_STRING = MS_ALERT + " {last_epi_visit}"
 MS_EXCLUDED_EPI_VISITS = ['epipenta1_v0_recru_arm_1', 'epipenta2_v1_iptis_arm_1']  # Defined by In-country Tech. Coord.
 
 # ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
+# 20211201 - NEXT VISIT alerts disabled by Kwabena & Clara's request
 TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 COHORT_DEFINED_ALERTS = [END_FU_ALERT]
 
