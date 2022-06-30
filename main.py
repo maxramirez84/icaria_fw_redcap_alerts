@@ -32,7 +32,7 @@ if __name__ == '__main__':
         # Get all records for each ICARIA REDCap project (TRIAL)
         print("[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
-        df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+        df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
         # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         # Next visit
         if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
             alerts.set_nv_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
@@ -79,7 +79,7 @@ if __name__ == '__main__':
             # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
-            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
             # mramirez - 20220217: The group of participants whose last EPI visit was more than one month ago (MS) also
             # includes the non-compliant participants recently contacted but that they have not come to the HF after
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
-            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_nc_alerts(
                 redcap_project=project,
@@ -126,8 +126,9 @@ if __name__ == '__main__':
 
         # MRV2 VISIT ALERT. 15 MONTH OF AGE
         if params.MRV2_ALERT in params.TRIAL_DEFINED_ALERTS:
+
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_mrv2_alerts(
                 redcap_project=project,
@@ -140,10 +141,12 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
                 months=params.MRV2_MONTHS
             )
+            
+
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_end_fu_alerts(
                 redcap_project=project,
@@ -172,7 +175,7 @@ if __name__ == '__main__':
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         fields = project.export_field_names()
         field_names = [field['export_field_name'] for field in fields]
-        df = project.export_records(format_type='df', fields=field_names)
+        df = project.export_records(format='df', fields=field_names)
 
         # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
