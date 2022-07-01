@@ -20,7 +20,7 @@ def get_list_communities(redcap_project, choice_sep, code_sep):
     :return: A dictionary in which the keys are the community code and the values are the community names.
     :rtype: dict
     """
-    community_field = redcap_project.export_metadata(fields=['community'], format_type='df')
+    community_field = redcap_project.export_metadata(fields=['community'], format='df')
     community_choices = community_field['select_choices_or_calculations'].community
     communities_string = community_choices.split(choice_sep)
     return {community.split(code_sep)[0]: community.split(code_sep)[1] for community in communities_string}

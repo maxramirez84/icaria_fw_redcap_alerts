@@ -67,4 +67,4 @@ COHORT_DEFINED_ALERTS = [END_FU_ALERT]
 # DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
                       'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen',
-                      'household_follow_up_complete', 'a0m_date', 'comp_date']
+                      'household_follow_up_complete', 'a1m_date', 'comp_date']
