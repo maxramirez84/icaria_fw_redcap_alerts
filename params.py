@@ -40,11 +40,15 @@ NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 # END OF FOLLOW UP
 DAYS_BEFORE_END_FU = 7  # Defined by In-Country Technical Coordinator
 END_FU_ALERT = "END F/U"
-END_FU_ALERT_STRING = END_FU_ALERT + ": {birthday}"
+END_FU_ALERT_STRING = END_FU_ALERT + " Pending: {birthday}"
+BORRAR_END_FU_ALERT_STRING = END_FU_ALERT + ": {birthday}"
+
+COHORT_MRV2_ALERT = "MRV2"
+COHORT_MRV2_ALERT_STRING = "MRV2 Pending: {birthday}"
+
 END_FU_TRIAL = 18   # By protocol
 END_FU_COHORT = 15  # By protocol
 COMPLETION_STRING = "COMPLETED. 18 months of age"
-
 
 # MORTALITY SURVEILLANCE
 DAYS_AFTER_EPI = 30  # Defined by PI as 1 month (after any EPI visit since Penta3 - included)
@@ -62,7 +66,7 @@ DAYS_BEFORE_MRV2 = 0 # Defined by In-Country Technical Coordinator
 
 TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT,MRV2_ALERT,COMPLETION_STRING]
 
-COHORT_DEFINED_ALERTS = [END_FU_ALERT]
+COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
 # DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
