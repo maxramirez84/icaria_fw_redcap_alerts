@@ -8,8 +8,6 @@ Non-Com<pliant visit. This requirement is saved into an eCRF variable in the Scr
 as part of the REDCap custom record label. Like this, field workers will see in a glance which participants they need to
 visit at their households."""
 
-
-#NEW 
 from datetime import datetime
 import pandas as pd
 import redcap
@@ -29,6 +27,7 @@ __status__ = "Dev"
 if __name__ == '__main__':
     # Alerts system @ ICARIA TRIAL REDCap projects
     for project_key in params.TRIAL_PROJECTS:
+        break
         project = redcap.Project(params.URL, params.TRIAL_PROJECTS[project_key])
 
         # Get all records for each ICARIA REDCap project (TRIAL)
@@ -165,11 +164,8 @@ if __name__ == '__main__':
             )
 
 
-
-
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
 
         # Get all records for each ICARIA REDCap project (COHORT)
@@ -178,7 +174,6 @@ if __name__ == '__main__':
         fields = project.export_field_names()
         field_names = [field['export_field_name'] for field in fields]
         df = project.export_records(format='df', fields=field_names)
-
         # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
             redcap_data=df,
@@ -187,12 +182,12 @@ if __name__ == '__main__':
         )
 
         # End of Follow Up
-        if params.END_FU_ALERT in params.COHORT_DEFINED_ALERTS:
+        if params.COHORT_MRV2_ALERT in params.COHORT_DEFINED_ALERTS:
             alerts.set_end_fu_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
-                end_fu_alert=params.END_FU_ALERT,
-                end_fu_alert_string=params.END_FU_ALERT_STRING,
+                end_fu_alert=params.COHORT_MRV2_ALERT,
+                end_fu_alert_string=params.COHORT_MRV2_ALERT_STRING,
                 alert_date_format=params.ALERT_DATE_FORMAT,
                 days_before=params.DAYS_BEFORE_END_FU,
                 blocked_records=custom_status_ids,
