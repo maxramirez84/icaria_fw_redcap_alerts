@@ -1,5 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
+
+import pandas as pd
 from dateutil.relativedelta import relativedelta
 import math
 import pandas
@@ -25,7 +27,6 @@ def get_list_communities(redcap_project, choice_sep, code_sep):
     communities_string = community_choices.split(choice_sep)
     return {community.split(code_sep)[0]: community.split(code_sep)[1] for community in communities_string}
 
-
 def get_record_ids_tbv(redcap_data):
     """Get the project record ids of the participants requiring a household visit. Thus, for every project record, check
     if the number of AZi/Pbo doses is higher than the number of household visits (excluding Non-Compliant visits) in
@@ -33,10 +34,8 @@ def get_record_ids_tbv(redcap_data):
          - Higher than zero: Participant requires a household follow up visit;
          - Zero: Participant who has been correctly supervised;
          - Lower than zero: Participant who has ended her follow up.
-
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
-
     :return: Array of record ids representing those study participants that require a AZi/Pbo supervision household
     visit
     :rtype: pandas.Int64Index
@@ -46,7 +45,6 @@ def get_record_ids_tbv(redcap_data):
     azi_supervision = azi_doses - times_hh_child_seen
 
     return azi_supervision[azi_supervision > 0].keys()
-
 
 def  get_record_ids_nc(redcap_data, days_to_nc):
     """Get the project record ids of the participants requiring a household visit because they are non-compliant, i.e.
@@ -343,7 +341,6 @@ def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_st
                         alert_date_format):
     """Build dataframe with record ids, communities, date of last AZi/Pbo dose and follow up status of every study
     participant requiring an AZi/Pbo supervision household visit.
-
     :param redcap_data:Exported REDCap project data
     :type redcap_data: pandas.DataFrame
     :param record_ids: Array of record ids representing those study participants that require a AZi/Pbo supervision
@@ -357,7 +354,6 @@ def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_st
     :type redcap_date_format: str
     :param alert_date_format: Format of the date of the last AZi/Pbo dose to be displayed in the alert
     :type alert_date_format: str
-
     :return: A dataframe with the columns community, last_azi_date and child_fu_status in which each row is identified
     by the REDCap record id and represents a study participant to be visited.
     :rtype: pandas.DataFrame
@@ -383,7 +379,6 @@ def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_st
             lambda x: alert_string.format(community=x[0], last_azi_date=x[1]), axis=1)
 
     return data_to_import
-
 
 def build_nc_alerts_df(redcap_data, record_ids, catchment_communities, alert_string):
     """Build dataframe with record ids, communities, non-compliant days and follow up status of every study participant
@@ -535,7 +530,7 @@ def build_ms_alerts_df(redcap_data, record_ids, alert_string, event_names):
     return data_to_import
 
 
-def get_active_alerts(redcap_data, alert, fu_status_event):
+def get_active_alerts(redcap_data, alert, fu_status_event, type_='Normal'):
     """Get the project records ids of the participants with an activated alert.
 
     :param redcap_data: Exported REDCap project data
@@ -553,7 +548,11 @@ def get_active_alerts(redcap_data, alert, fu_status_event):
     if active_alerts.empty:
         return None
 
-    active_alerts = active_alerts[active_alerts.str.startswith(alert)]
+    if type_=='BW':
+        active_alerts = active_alerts[active_alerts.str.endswith(alert)]
+    else:
+        active_alerts = active_alerts[active_alerts.str.startswith(alert)]
+
     active_alerts.index = active_alerts.index.get_level_values('record_id')
 
     return active_alerts.keys()
@@ -591,7 +590,6 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
                    alert_date_format, choice_sep, code_sep, blocked_records, fu_status_event):
     """Remove the Household to be visited alerts of those participants that have been already visited and setup new
     alerts for these others that took recently AZi/Pbo and require a household visit.
-
     :param redcap_project: A REDCap project class to communicate with the REDCap API
     :type redcap_project: redcap.Project
     :param redcap_project_df: Data frame containing all data exported from the REDCap project
@@ -613,7 +611,6 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     :type blocked_records: pandas.Int64Index
     :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
     :type fu_status_event: str
-
     :return: None
     """
 
@@ -896,6 +893,73 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
                           for rec_id, participant in to_import_df.iterrows()]
         response = redcap_project.import_records(to_import_dict)
         print("[COMPLETED PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
+
+
+def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, bw_alert_string, alert_date_format,
+                  blocked_records, fu_status_event):
+    """
+
+    :param redcap_project: A REDCap project class to communicate with the REDCap API
+    :type redcap_project: redcap.Project
+    :param redcap_project_df: Data frame containing all data exported from the REDCap project
+    :type redcap_project_df: pandas.DataFrame
+    :param nv_alert: Code of the Next Visit alerts
+    :type nv_alert: str
+    :param nv_alert_string: String with the alert to be setup
+    :type nv_alert_string: str
+    :param alert_date_format: Format of the date of the next return date to be displayed in the alert
+    :type alert_date_format: str
+    :param days_before: Number of days before today to start alerting the participant will come
+    :type days_before: int
+    :param days_after: Number of days after today to continue alerting the participant will come
+    :type days_after: int
+    :param blocked_records: Array with the record ids that will be ignored during the alerts setup
+    :type blocked_records: pandas.Int64Index
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
+
+    :return: None
+    """
+
+    REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
+    BW_REDCAP = REDCAP_QUERY[REDCAP_QUERY['child_weight_birth'].isnull()]
+    # Remove those ids that must be ignored
+
+    records_bw = BW_REDCAP.index.get_level_values(0)
+    if blocked_records is not None:
+        records_bw = records_bw.difference(blocked_records)
+
+    # Check which of the records with alerts are not anymore in the records to be contacted (i.e. participants with an
+    # activated alerts already contacted)
+    records_with_alerts = get_active_alerts(redcap_project_df, bw_alert, fu_status_event, type_='BW')
+    NON_BW_REDCAP = REDCAP_QUERY[REDCAP_QUERY['child_weight_birth'].notnull()]
+
+    if records_with_alerts is not None:
+        alerts_to_be_removed = records_with_alerts.difference(records_bw)
+        # Import data into the REDCap project: Alerts removal
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(NON_BW_REDCAP['child_fu_status'][rec_id][0]).split(" BW")[0]} for rec_id in alerts_to_be_removed]
+        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        print("[BIRTH WEIGHT] Alerts removal: {}".format(response.get('count')))
+    else:
+        print("[BIRTH WEIGHT] Alerts removal: None")
+
+    df_to_set_alarm = BW_REDCAP.reset_index()[['record_id','child_fu_status']]
+    to_import_list= []
+    for k,el in df_to_set_alarm.T.iteritems():
+        if el.record_id in records_bw:
+
+            id = el.record_id
+            if str(el.child_fu_status)=='nan':
+                status = "BW"
+            else:
+                if "COMPLETED" in str(el.child_fu_status):
+                    status = str(el.child_fu_status).split("BW")[0]
+                else:
+                    status = str(el.child_fu_status).split("BW")[0] + " BW"
+
+            to_import_list.append({'record_id': id , 'child_fu_status':status})
+    response = redcap_project.import_records(to_import_list)
+    print("[BIRTH WEIGHT] Alerts setup: {}".format(response.get('count')))
 
 
 # MORTALITY SURVEILLANCE
