@@ -26,6 +26,7 @@ __status__ = "Dev"
 
 if __name__ == '__main__':
     # Alerts system @ ICARIA TRIAL REDCap projects
+
     for project_key in params.TRIAL_PROJECTS:
         project = redcap.Project(params.URL, params.TRIAL_PROJECTS[project_key])
 
@@ -74,6 +75,8 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
+
+
         # Mortality surveillance visits
         if params.MS_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -161,7 +164,19 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
                 months=params.END_FU_TRIAL
             )
-
+        # Birth's weights not collected Alert
+        if params.BW_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            alerts.set_bw_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                bw_alert=params.BW_ALERT,
+                bw_alert_string=params.BW_ALERT_STRING,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+            )
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:

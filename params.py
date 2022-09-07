@@ -62,13 +62,18 @@ MRV2_ALERT_STRING = MRV2_ALERT
 MRV2_MONTHS = 15
 DAYS_BEFORE_MRV2 = 0 # Defined by In-Country Technical Coordinator
 
+# BIRTHS WEIGHTS ALERT. If not collected
+BW_ALERT = "BW"
+BW_ALERT_STRING = BW_ALERT
+
+
 # ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 
-TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT,MRV2_ALERT,COMPLETION_STRING]
+TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT,MRV2_ALERT,COMPLETION_STRING, BW_ALERT]
 
 COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
 # DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
-                      'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen',
-                      'household_follow_up_complete', 'a1m_date', 'comp_date']
+                      'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen', 'hh_date',
+                      'household_follow_up_complete', 'a1m_date', 'comp_date','phone_success','child_weight_birth']
