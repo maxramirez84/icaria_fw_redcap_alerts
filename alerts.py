@@ -41,8 +41,25 @@ def get_record_ids_tbv(redcap_data):
     :rtype: pandas.Int64Index
     """
     azi_doses = redcap_data.groupby('record_id')['int_azi'].sum()
+
     times_hh_child_seen = redcap_data.groupby('record_id')['hh_child_seen'].sum()
     azi_supervision = azi_doses - times_hh_child_seen
+
+
+###############################
+
+#    epi1_recordid = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'),:].index.get_level_values('record_id')
+
+#    epi6_recordid = redcap_data.loc[(slice(None), 'epimvr2_v6_iptisp6_arm_1'),:].index.get_level_values('record_id')
+#    hh1_recordid = redcap_data.loc[(slice(None), 'hhafter_1st_dose_o_arm_1'),:].index.get_level_values('record_id')
+#    hh18_recordid = redcap_data.loc[(slice(None), 'hhat_18th_month_of_arm_1'),:].index.get_level_values('record_id')
+
+ #   hh1r = epi1_recordid.difference(hh1_recordid)
+ #   hh18r = epi6_recordid.difference(hh18_recordid)
+    #print(hh1r.append(hh18r.difference(hh1r)))
+
+    #return hh1_recordid
+####################################
 
     return azi_supervision[azi_supervision > 0].keys()
 
@@ -922,22 +939,23 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, bw_alert_string, 
     """
 
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
-    BW_REDCAP = REDCAP_QUERY[REDCAP_QUERY['child_weight_birth'].isnull()]
+    BW_REDCAP = REDCAP_QUERY[(str(REDCAP_QUERY['child_birth_weight_known'])==str(0))|(REDCAP_QUERY['child_birth_weight_known'].isnull())]#(REDCAP_QUERY['child_weight_birth'].isnull())
+    #print(BW_REDCAP['child_birth_weight_known'][30])
     # Remove those ids that must be ignored
-
     records_bw = BW_REDCAP.index.get_level_values(0)
     if blocked_records is not None:
         records_bw = records_bw.difference(blocked_records)
-
     # Check which of the records with alerts are not anymore in the records to be contacted (i.e. participants with an
     # activated alerts already contacted)
     records_with_alerts = get_active_alerts(redcap_project_df, bw_alert, fu_status_event, type_='BW')
-    NON_BW_REDCAP = REDCAP_QUERY[REDCAP_QUERY['child_weight_birth'].notnull()]
+
+    #NON_BW_REDCAP = REDCAP_QUERY[(REDCAP_QUERY['child_birth_weight_known']==float(0))|(REDCAP_QUERY['child_weight_birth'].notnull())]
+    #print (NON_BW_REDCAP)
+    alerts_to_be_removed = records_with_alerts.difference(records_bw)
 
     if records_with_alerts is not None:
-        alerts_to_be_removed = records_with_alerts.difference(records_bw)
         # Import data into the REDCap project: Alerts removal
-        to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(NON_BW_REDCAP['child_fu_status'][rec_id][0]).split(" BW")[0]} for rec_id in alerts_to_be_removed]
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(" BW")[0]} for rec_id in alerts_to_be_removed]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
         print("[BIRTH WEIGHT] Alerts removal: {}".format(response.get('count')))
     else:
@@ -947,7 +965,6 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, bw_alert_string, 
     to_import_list= []
     for k,el in df_to_set_alarm.T.iteritems():
         if el.record_id in records_bw:
-
             id = el.record_id
             if str(el.child_fu_status)=='nan':
                 status = "BW"
