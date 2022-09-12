@@ -46,6 +46,7 @@ if __name__ == '__main__':
         # I.e. they will be overwritten by the following alerts if the flagging condition is met for more than one
         # alert.
 
+
         # Households to be visited
         if params.TBV_ALERT in params.TRIAL_DEFINED_ALERTS:
             alerts.set_tbv_alerts(
@@ -60,8 +61,6 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-
-
         # Next visit
         if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -174,17 +173,14 @@ if __name__ == '__main__':
                 redcap_project=project,
                 redcap_project_df=df,
                 bw_alert=params.BW_ALERT,
-                bw_alert_string=params.BW_ALERT_STRING,
-                alert_date_format=params.ALERT_DATE_FORMAT,
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-        break
-        project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
 
+        project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))

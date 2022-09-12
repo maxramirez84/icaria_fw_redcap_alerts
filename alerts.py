@@ -2,6 +2,8 @@ from datetime import datetime
 from datetime import timedelta
 
 import pandas as pd
+from pandas import IndexSlice as idx
+
 from dateutil.relativedelta import relativedelta
 import math
 import pandas
@@ -40,28 +42,40 @@ def get_record_ids_tbv(redcap_data):
     visit
     :rtype: pandas.Int64Index
     """
-    azi_doses = redcap_data.groupby('record_id')['int_azi'].sum()
 
-    times_hh_child_seen = redcap_data.groupby('record_id')['hh_child_seen'].sum()
-    azi_supervision = azi_doses - times_hh_child_seen
+    #### OLD VERSION OF THE TBV ALERT. CHANGED BY ANDREU BOFILL. 2022.09.11 ####
+
+    #azi_doses = redcap_data.groupby('record_id')['int_azi'].sum()
+    #times_hh_child_seen = redcap_data.groupby('record_id')['hh_child_seen'].sum()
+    #azi_supervision = azi_doses - times_hh_child_seen
+    #return azi_supervision[azi_supervision > 0].keys()
 
 
-###############################
+    # To find what HHFU visits Have never been done
+    epi1_recordid = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'),:].index.get_level_values('record_id')
+    hh1_recordid = redcap_data.loc[(slice(None), 'hhafter_1st_dose_o_arm_1'),:].index.get_level_values('record_id')
 
-#    epi1_recordid = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'),:].index.get_level_values('record_id')
+    HH_not_done_yet = epi1_recordid.difference(hh1_recordid)
 
-#    epi6_recordid = redcap_data.loc[(slice(None), 'epimvr2_v6_iptisp6_arm_1'),:].index.get_level_values('record_id')
-#    hh1_recordid = redcap_data.loc[(slice(None), 'hhafter_1st_dose_o_arm_1'),:].index.get_level_values('record_id')
-#    hh18_recordid = redcap_data.loc[(slice(None), 'hhat_18th_month_of_arm_1'),:].index.get_level_values('record_id')
+    # To know what HHFU has been done by phone and are unsuccesful
+    hh1_intersec = epi1_recordid.intersection(hh1_recordid)
+    hh1_phone_info = redcap_data.loc[idx[list(hh1_intersec),'hhafter_1st_dose_o_arm_1'],('fu_type','hh_mother_caretaker','phone_success','hh_drug_react','hh_health_complaint')]
 
- #   hh1r = epi1_recordid.difference(hh1_recordid)
- #   hh18r = epi6_recordid.difference(hh18_recordid)
-    #print(hh1r.append(hh18r.difference(hh1r)))
+    hh1_unsuccess_grouped = hh1_phone_info.groupby('record_id')[['fu_type','phone_success']].max()
+    hh1_unsuccess=hh1_unsuccess_grouped[(hh1_unsuccess_grouped['fu_type']==float(1))&((hh1_unsuccess_grouped['phone_success']) == float(0))]
 
-    #return hh1_recordid
-####################################
+    HH_not_done_yet = HH_not_done_yet.append(hh1_unsuccess.index.get_level_values('record_id'))
 
-    return azi_supervision[azi_supervision > 0].keys()
+    # To know what HHFU at 18M call successed  but a drug reaction/health complaint
+
+    HH1_HEALTH_COMPLAINT = hh1_phone_info[(hh1_phone_info['phone_success']) == float(1)].groupby('record_id')[['hh_drug_react','hh_health_complaint']].max()
+    HH1_phone_drugreact = HH1_HEALTH_COMPLAINT[(HH1_HEALTH_COMPLAINT['hh_drug_react']==float(1))|(HH1_HEALTH_COMPLAINT['hh_health_complaint']==float(1))].index.get_level_values('record_id')
+
+    HH_not_done_yet = HH_not_done_yet.append(HH1_phone_drugreact)
+
+    HH_not_done_yet = HH_not_done_yet.drop_duplicates()
+    return HH_not_done_yet
+
 
 def  get_record_ids_nc(redcap_data, days_to_nc):
     """Get the project record ids of the participants requiring a household visit because they are non-compliant, i.e.
@@ -645,7 +659,6 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     # activated alerts already visited)
     if records_with_alerts is not None:
         alerts_to_be_removed = records_with_alerts.difference(records_to_be_visited)
-
         # Import data into the REDCap project: Alerts removal
 
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
@@ -656,11 +669,9 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
 
     # Get list of communities in the health facility catchment area
     communities = get_list_communities(redcap_project, choice_sep, code_sep)
-
     # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
     to_import_df = build_tbv_alerts_df(redcap_project_df, records_to_be_visited, communities, tbv_alert_string,
                                        redcap_date_format, alert_date_format)
-
     # Import data into the REDCap project: Alerts setup
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                       for rec_id, participant in to_import_df.iterrows()]
@@ -899,7 +910,6 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
     print("[END F/U] Alerts setup: {}".format(response.get('count')))
 
 
-
     # COMPLETED PARTICIPANTS ALERT PART
     # BASED ON THE
     if completed_alert_string is not None:
@@ -912,8 +922,7 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
         print("[COMPLETED PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
 
 
-def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, bw_alert_string, alert_date_format,
-                  blocked_records, fu_status_event):
+def set_bw_alerts(redcap_project, redcap_project_df, bw_alert,blocked_records, fu_status_event):
     """
 
     :param redcap_project: A REDCap project class to communicate with the REDCap API
@@ -939,23 +948,20 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, bw_alert_string, 
     """
 
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
-    BW_REDCAP = REDCAP_QUERY[(str(REDCAP_QUERY['child_birth_weight_known'])==str(0))|(REDCAP_QUERY['child_birth_weight_known'].isnull())]#(REDCAP_QUERY['child_weight_birth'].isnull())
-    #print(BW_REDCAP['child_birth_weight_known'][30])
+
+    BW_REDCAP = REDCAP_QUERY[(REDCAP_QUERY['child_birth_weight_known'].isnull())]#(REDCAP_QUERY['child_weight_birth'].isnull())
+
     # Remove those ids that must be ignored
     records_bw = BW_REDCAP.index.get_level_values(0)
     if blocked_records is not None:
         records_bw = records_bw.difference(blocked_records)
-    # Check which of the records with alerts are not anymore in the records to be contacted (i.e. participants with an
-    # activated alerts already contacted)
+
     records_with_alerts = get_active_alerts(redcap_project_df, bw_alert, fu_status_event, type_='BW')
 
-    #NON_BW_REDCAP = REDCAP_QUERY[(REDCAP_QUERY['child_birth_weight_known']==float(0))|(REDCAP_QUERY['child_weight_birth'].notnull())]
-    #print (NON_BW_REDCAP)
     alerts_to_be_removed = records_with_alerts.difference(records_bw)
-
     if records_with_alerts is not None:
         # Import data into the REDCap project: Alerts removal
-        to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(" BW")[0]} for rec_id in alerts_to_be_removed]
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split("BW")[0]} for rec_id in alerts_to_be_removed]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
         print("[BIRTH WEIGHT] Alerts removal: {}".format(response.get('count')))
     else:
@@ -967,12 +973,12 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, bw_alert_string, 
         if el.record_id in records_bw:
             id = el.record_id
             if str(el.child_fu_status)=='nan':
-                status = "BW"
+                status = " BW"
             else:
                 if "COMPLETED" in str(el.child_fu_status):
                     status = str(el.child_fu_status).split("BW")[0]
                 else:
-                    status = str(el.child_fu_status).split("BW")[0] + " BW"
+                    status = str(el.child_fu_status).split("BW")[0]+ " BW"
 
             to_import_list.append({'record_id': id , 'child_fu_status':status})
     response = redcap_project.import_records(to_import_list)
