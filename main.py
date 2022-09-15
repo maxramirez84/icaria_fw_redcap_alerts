@@ -91,9 +91,10 @@ if __name__ == '__main__':
             # procedure, even though they could have been contacted recently. In order to avoid re-contacting as less
             # participants as possible, only recruited participants since 2021-11-29 will be considered, i.e. recruited
             # participants 2.5 months ago.
-            recruited_since = df.query("screening_date >'2021-11-29 00:00:00'")
-            record_ids = recruited_since.index.get_level_values(0)
-            df = df.query("record_id in @record_ids")
+
+            #recruited_since = df.query("screening_date >'2021-11-29 00:00:00'")
+            #record_ids = recruited_since.index.get_level_values(0)
+            #df = df.query("record_id in @record_ids")
 
             alerts.set_ms_alerts(
                 redcap_project=project,
