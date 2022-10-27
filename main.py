@@ -47,6 +47,27 @@ if __name__ == '__main__':
         # alert.
 
 
+##########################
+        """        # MRV2 VISIT ALERT. 15 MONTH OF AGE
+        if params.COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+
+            alerts.set_cohort_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                cohort_alert=params.COHORT_ALERT,
+                cohort_alert_string=params.COHORT_ALERT_STRING,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_COHORT,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
+                months=params.COHORT_MONTHS
+            )
+
+        """
+#############################
+
         # Households to be visited
         if params.TBV_ALERT in params.TRIAL_DEFINED_ALERTS:
             alerts.set_tbv_alerts(
@@ -76,8 +97,7 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-
-
+        """
         # Mortality surveillance visits
         if params.MS_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -109,6 +129,7 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
+        
         # Non-compliant visits
         if params.NC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -128,10 +149,31 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
 
+        """
+            # NEW Mortality surveillance visits
+        if params.MS_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            fields = project.export_field_names()
+            field_names = [field['export_field_name'] for field in fields]
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+
+            alerts.set_new_ms_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                ms_alert=params.NEW_MS_ALERT,
+                ms_alert_string=params.NEW_MS_ALERT_STRING,
+                choice_sep=params.CHOICE_SEP,
+                code_sep=params.CODE_SEP,
+                days_after_epi=params.NEW_DAYS_AFTER_EPI,
+                event_names=params.TRIAL_ALL_EVENT_NAMES,
+                excluded_epi_visits=params.NEW_MS_EXCLUDED_EPI_VISITS,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+            )
+
 
         # MRV2 VISIT ALERT. 15 MONTH OF AGE
         if params.MRV2_ALERT in params.TRIAL_DEFINED_ALERTS:
-
             # Update REDCap data as it has may been modified by previous alerts
             df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
@@ -146,7 +188,7 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
                 months=params.MRV2_MONTHS
             )
-            
+
 
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
@@ -180,7 +222,7 @@ if __name__ == '__main__':
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-
+        break
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
