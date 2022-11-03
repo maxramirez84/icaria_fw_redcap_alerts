@@ -961,8 +961,8 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert,blocked_records, f
 
     records_with_alerts = get_active_alerts(redcap_project_df, bw_alert, fu_status_event, type_='BW')
 
-    alerts_to_be_removed = records_with_alerts.difference(records_bw)
     if records_with_alerts is not None:
+        alerts_to_be_removed = records_with_alerts.difference(records_bw)
         # Import data into the REDCap project: Alerts removal
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split("BW")[0]} for rec_id in alerts_to_be_removed]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
@@ -1090,19 +1090,16 @@ def set_new_ms_alerts(redcap_project, redcap_project_df, ms_alert, ms_alert_stri
 
     # Get the project records ids of the participants requiring a contact to know their vital status
     records_to_be_contacted, last_visit_dates = get_record_ids_new_ms(redcap_project_df, days_after_epi, excluded_epi_visits)
-
     # Remove those ids that must be ignored
     if blocked_records is not None:
         records_to_be_contacted = records_to_be_contacted.difference(blocked_records)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, ms_alert, fu_status_event)
-
     # Check which of the records with alerts are not anymore in the records to be contacted (i.e. participants with an
     # activated alerts already contacted)
     if records_with_alerts is not None:
         alerts_to_be_removed = records_with_alerts.difference(records_to_be_contacted)
-
         # Import data into the REDCap project: Alerts removal
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
@@ -1172,8 +1169,7 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     if completed_fu is not None:
         record_ids_completed_fu = completed_fu.index.get_level_values('record_id')
         to_be_surveyed = to_be_surveyed.difference(record_ids_completed_fu)
-
-    return to_be_surveyed, last_visit_dates[to_be_surveyed]
+    return to_be_surveyed, last_visit_dates[list(to_be_surveyed)]
 
 
 
@@ -1200,14 +1196,14 @@ def build_new_ms_alerts_df(redcap_data, record_ids, alert_string, event_names,la
     last_epi_visit = redcap_data.loc[record_ids, 'int_date']
     #last_epi_visit = redcap_data.loc[list(record_ids)][['int_date','a1m_date','hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date']]
     last_epi_visit = last_epi_visit[last_epi_visit.notnull()]
-
     new_last_visit = pd.DataFrame(columns=['redcap_event_name'])
     for k,el in last_visit_dates.T.iteritems():
-        last_visit = redcap_data.loc[k][['int_date','a1m_date','hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date']]
-        last_visit = last_visit[last_visit.eq(el)]
-        last_visit = last_visit[last_visit.notnull()]
-        last_visit = last_visit.dropna(how='all')
-        new_last_visit.loc[k] = last_visit.index[0]
+        if k in record_ids:
+            last_visit = redcap_data.loc[k][['int_date','a1m_date','hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date']]
+            last_visit = last_visit[last_visit.eq(el)]
+            last_visit = last_visit[last_visit.notnull()]
+            last_visit = last_visit.dropna(how='all')
+            new_last_visit.loc[k] = last_visit.index[0]
     last_epi_visit = pandas.to_datetime(last_epi_visit)
     last_epi_visit = last_epi_visit.reset_index()
     idx = last_epi_visit.groupby('record_id')['int_date'].transform(max) == last_epi_visit['int_date']

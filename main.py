@@ -41,7 +41,6 @@ if __name__ == '__main__':
             defined_alerts=params.TRIAL_DEFINED_ALERTS,
             fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
         )
-
         # ALERT SYSTEM: The order of the alerts here matters. The first alert to be flagged has the lowest priority.
         # I.e. they will be overwritten by the following alerts if the flagging condition is met for more than one
         # alert.
