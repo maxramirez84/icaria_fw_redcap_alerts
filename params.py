@@ -114,4 +114,5 @@ ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_stat
                       'household_follow_up_complete', 'a1m_date', 'comp_date','phone_success','child_weight_birth',
                       'child_birth_weight_known','phone_success','fu_type','hh_drug_react','hh_health_complaint',
                       'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter',
-                      'hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date']
+                      'hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date',
+                      'phone_child_status']

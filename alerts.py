@@ -213,8 +213,9 @@ def get_record_ids_end_trial_fu(redcap_data, days_before, fu_age=18,about_to_tur
     finalized = x.query(
         "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
         "redcap_repeat_instrument == 'household_follow_up' and "
-        "hh_child_seen == 1"
+        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4)"
     )
+
 
     about_18m_not_seen = about_18m.index
     if finalized is not None:
@@ -875,9 +876,11 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
     records_to_flag = []
     if study == "TRIAL":
         records_to_flag,records_completed = get_record_ids_end_trial_fu(redcap_project_df, days_before)
+        print(records_completed)
     if study == "COHORT":
         # Ge        # Get the project records ids of the participants who are turning 18 months in days_before days from todayt the project records ids of the participants who are turning 15 months in days_before days from today
         records_to_flag = get_record_ids_end_cohort_fu(redcap_project_df, days_before)
+
     # Remove those ids that must be ignored
 
     if blocked_records is not None:
