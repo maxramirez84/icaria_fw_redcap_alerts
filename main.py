@@ -46,27 +46,6 @@ if __name__ == '__main__':
         # alert.
 
 
-##########################
-        """        # MRV2 VISIT ALERT. 15 MONTH OF AGE
-        if params.COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
-            # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
-
-            alerts.set_cohort_alerts(
-                redcap_project=project,
-                redcap_project_df=df,
-                cohort_alert=params.COHORT_ALERT,
-                cohort_alert_string=params.COHORT_ALERT_STRING,
-                alert_date_format=params.ALERT_DATE_FORMAT,
-                days_before=params.DAYS_BEFORE_COHORT,
-                blocked_records=custom_status_ids,
-                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
-                months=params.COHORT_MONTHS
-            )
-
-        """
-#############################
-
         # Households to be visited
         if params.TBV_ALERT in params.TRIAL_DEFINED_ALERTS:
             alerts.set_tbv_alerts(
@@ -128,7 +107,7 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-        
+
         # Non-compliant visits
         if params.NC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -221,7 +200,6 @@ if __name__ == '__main__':
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-        break
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
