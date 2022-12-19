@@ -110,7 +110,8 @@ COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
 # DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
-                      'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen', 'hh_date','study_number',
+                      'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen',
+                      'hh_date','study_number',
                       'household_follow_up_complete', 'a1m_date', 'comp_date','phone_success','child_weight_birth',
                       'child_birth_weight_known','phone_success','fu_type','hh_drug_react','hh_health_complaint',
                       'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter',

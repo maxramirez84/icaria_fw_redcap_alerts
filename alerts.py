@@ -73,6 +73,19 @@ def get_record_ids_tbv(redcap_data):
 
     HH_not_done_yet = HH_not_done_yet.append(HH1_phone_drugreact)
 
+
+    # To know what HHFU has been done in a HH visit and are unsuccesful
+    hh1_intersec = epi1_recordid.intersection(hh1_recordid)
+    hh1_phone_info = redcap_data.loc[idx[list(hh1_intersec),'hhafter_1st_dose_o_arm_1'],('fu_type','hh_child_seen','hh_why_not_child_seen')]
+
+    hh1_unsuccess_grouped = hh1_phone_info.groupby('record_id')[['fu_type','hh_child_seen','hh_why_not_child_seen']].max()
+    hh1_unsuccess=hh1_unsuccess_grouped[(hh1_unsuccess_grouped['fu_type']==float(2))&((hh1_unsuccess_grouped['hh_why_not_child_seen']) == float(1))&((hh1_unsuccess_grouped['hh_child_seen']) == float(0))]
+    print(hh1_unsuccess)
+    HH_not_done_yet = HH_not_done_yet.append(hh1_unsuccess.index.get_level_values('record_id'))
+
+
+
+
     HH_not_done_yet = HH_not_done_yet.drop_duplicates()
     return HH_not_done_yet
 
@@ -680,6 +693,7 @@ def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_strin
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                       for rec_id, participant in to_import_df.iterrows()]
     response = redcap_project.import_records(to_import_dict)
+
     print("[TO BE VISITED] Alerts setup: {}".format(response.get('count')))
 
 
@@ -876,7 +890,6 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
     records_to_flag = []
     if study == "TRIAL":
         records_to_flag,records_completed = get_record_ids_end_trial_fu(redcap_project_df, days_before)
-        print(records_completed)
     if study == "COHORT":
         # Ge        # Get the project records ids of the participants who are turning 18 months in days_before days from todayt the project records ids of the participants who are turning 15 months in days_before days from today
         records_to_flag = get_record_ids_end_cohort_fu(redcap_project_df, days_before)
