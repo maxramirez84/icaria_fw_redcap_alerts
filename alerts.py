@@ -226,9 +226,8 @@ def get_record_ids_end_trial_fu(redcap_data, days_before, fu_age=18,about_to_tur
     finalized = x.query(
         "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
         "redcap_repeat_instrument == 'household_follow_up' and "
-        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4)"
+        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or hh_why_not_child_seen == 4)"
     )
-
 
     about_18m_not_seen = about_18m.index
     if finalized is not None:
