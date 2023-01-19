@@ -519,7 +519,7 @@ def build_end_fu_alerts_df(redcap_data, record_ids, alert_string, alert_date_for
     :type alert_date_format: str
     :param months: Number of months of age when participants end follow up
     :type months: int
-
+    
     :return: A dataframe with the columns months birthday and child_fu_status in which each row is identified by the
     REDCap record id and represents a study participant who is supposed to be visited for the end of the follow up.
     :rtype: pandas.DataFrame
@@ -581,7 +581,7 @@ def build_ms_alerts_df(redcap_data, record_ids, alert_string, event_names):
 
 def get_active_alerts(redcap_data, alert, fu_status_event, type_='Normal'):
     """Get the project records ids of the participants with an activated alert.
-
+w
     :param redcap_data: Exported REDCap project data
     :type redcap_data: pandas.DataFrame
     :param alert: String representing the type of alerts to be retrieved
