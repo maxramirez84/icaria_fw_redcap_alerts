@@ -45,11 +45,12 @@ def get_record_ids_tbv(redcap_data):
 
     #### OLD VERSION OF THE TBV ALERT. CHANGED BY ANDREU BOFILL. 2022.09.11 ####
 
-    #azi_doses = redcap_data.groupby('record_id')['int_azi'].sum()
+
+#    azi_doses = redcap_data.groupby('record_id')['int_azi'].sum()
     #times_hh_child_seen = redcap_data.groupby('record_id')['hh_child_seen'].sum()
     #azi_supervision = azi_doses - times_hh_child_seen
     #return azi_supervision[azi_supervision > 0].keys()
-
+    #print(redcap_data.T[893].T['fu_type'].dropna())
 
     # To find what HHFU visits Have never been done
     epi1_recordid = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'),:].index.get_level_values('record_id')
@@ -76,17 +77,23 @@ def get_record_ids_tbv(redcap_data):
 
     # To know what HHFU has been done in a HH visit and are unsuccesful
     hh1_intersec = epi1_recordid.intersection(hh1_recordid)
-    hh1_phone_info = redcap_data.loc[idx[list(hh1_intersec),'hhafter_1st_dose_o_arm_1'],('fu_type','hh_child_seen','hh_why_not_child_seen')]
+    #print(hh1_phone_info.T[['fu_type','hh_child_seen','hh_why_not_child_seen']].T[893])
+    hh1_phone_info = redcap_data.loc[idx[list(hh1_intersec),'hhafter_1st_dose_o_arm_1'],('hh_date','fu_type','hh_child_seen','hh_why_not_child_seen')]
 
-    hh1_unsuccess_grouped = hh1_phone_info.groupby('record_id')[['fu_type','hh_child_seen','hh_why_not_child_seen']].max()
+    ###### I NEED TO SOLVE THIS #####
+
+    hh1_unsuccess_grouped = hh1_phone_info.groupby('record_id')[['hh_date','fu_type','hh_child_seen','hh_why_not_child_seen']].last()
+
+  
+
+ #   print(hh1_unsuccess_grouped)
     hh1_unsuccess=hh1_unsuccess_grouped[(hh1_unsuccess_grouped['fu_type']==float(2))&((hh1_unsuccess_grouped['hh_why_not_child_seen']) == float(1))&((hh1_unsuccess_grouped['hh_child_seen']) == float(0))]
-    print(hh1_unsuccess)
+ #   print(hh1_unsuccess)
     HH_not_done_yet = HH_not_done_yet.append(hh1_unsuccess.index.get_level_values('record_id'))
 
-
-
-
     HH_not_done_yet = HH_not_done_yet.drop_duplicates()
+ #   print(HH_not_done_yet)
+#    print(HH_not_done_yet)
     return HH_not_done_yet
 
 
@@ -226,9 +233,8 @@ def get_record_ids_end_trial_fu(redcap_data, days_before, fu_age=18,about_to_tur
     finalized = x.query(
         "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
         "redcap_repeat_instrument == 'household_follow_up' and "
-        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4)"
+        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or hh_why_not_child_seen == 4)"
     )
-
 
     about_18m_not_seen = about_18m.index
     if finalized is not None:
@@ -408,7 +414,7 @@ def build_tbv_alerts_df(redcap_data, record_ids, catchment_communities, alert_st
     communities_to_be_visited = communities_to_be_visited.apply(int).apply(str).replace(catchment_communities)
     communities_to_be_visited.index = communities_to_be_visited.index.get_level_values('record_id')
 
-    # Append to record ids, the date of last AZi/Pbo dose administered to the participant
+   # Append to record ids, the date of last AZi/Pbo dose administered to the participant
     last_azi_doses = redcap_data.loc[record_ids, ['int_azi', 'int_date']]
     last_azi_doses = last_azi_doses[last_azi_doses['int_azi'] == 1]
     last_azi_doses = last_azi_doses.groupby('record_id')['int_date'].max()
