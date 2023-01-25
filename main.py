@@ -28,6 +28,7 @@ if __name__ == '__main__':
     # Alerts system @ ICARIA TRIAL REDCap projects
 
     for project_key in params.TRIAL_PROJECTS:
+        ######
         project = redcap.Project(params.URL, params.TRIAL_PROJECTS[project_key])
 
         # Get all records for each ICARIA REDCap project (TRIAL)
