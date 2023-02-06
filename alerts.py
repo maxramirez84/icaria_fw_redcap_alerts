@@ -43,58 +43,22 @@ def get_record_ids_tbv(redcap_data):
     :rtype: pandas.Int64Index
     """
 
-    #### OLD VERSION OF THE TBV ALERT. CHANGED BY ANDREU BOFILL. 2022.09.11 ####
-
-
-#    azi_doses = redcap_data.groupby('record_id')['int_azi'].sum()
-    #times_hh_child_seen = redcap_data.groupby('record_id')['hh_child_seen'].sum()
-    #azi_supervision = azi_doses - times_hh_child_seen
-    #return azi_supervision[azi_supervision > 0].keys()
-    #print(redcap_data.T[893].T['fu_type'].dropna())
-
     # To find what HHFU visits Have never been done
     epi1_recordid = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'),:].index.get_level_values('record_id')
     hh1_recordid = redcap_data.loc[(slice(None), 'hhafter_1st_dose_o_arm_1'),:].index.get_level_values('record_id')
-
     HH_not_done_yet = epi1_recordid.difference(hh1_recordid)
 
-    # To know what HHFU has been done by phone and are unsuccesful
-    hh1_intersec = epi1_recordid.intersection(hh1_recordid)
-    hh1_phone_info = redcap_data.loc[idx[list(hh1_intersec),'hhafter_1st_dose_o_arm_1'],('fu_type','hh_mother_caretaker','phone_success','hh_drug_react','hh_health_complaint')]
+    #### NEW VERSION OF THE TBV ALERT. ANDREU BOFILL 03/02/2022
 
-    hh1_unsuccess_grouped = hh1_phone_info.groupby('record_id')[['fu_type','phone_success']].max()
-    hh1_unsuccess=hh1_unsuccess_grouped[(hh1_unsuccess_grouped['fu_type']==float(1))&((hh1_unsuccess_grouped['phone_success']) == float(0))]
-
-    HH_not_done_yet = HH_not_done_yet.append(hh1_unsuccess.index.get_level_values('record_id'))
-
-    # To know what HHFU at 18M call successed  but a drug reaction/health complaint
-
-    HH1_HEALTH_COMPLAINT = hh1_phone_info[(hh1_phone_info['phone_success']) == float(1)].groupby('record_id')[['hh_drug_react','hh_health_complaint']].max()
-    HH1_phone_drugreact = HH1_HEALTH_COMPLAINT[(HH1_HEALTH_COMPLAINT['hh_drug_react']==float(1))|(HH1_HEALTH_COMPLAINT['hh_health_complaint']==float(1))].index.get_level_values('record_id')
-
-    HH_not_done_yet = HH_not_done_yet.append(HH1_phone_drugreact)
-
-
-    # To know what HHFU has been done in a HH visit and are unsuccesful
-    hh1_intersec = epi1_recordid.intersection(hh1_recordid)
-    #print(hh1_phone_info.T[['fu_type','hh_child_seen','hh_why_not_child_seen']].T[893])
-    hh1_phone_info = redcap_data.loc[idx[list(hh1_intersec),'hhafter_1st_dose_o_arm_1'],('hh_date','fu_type','hh_child_seen','hh_why_not_child_seen')]
-
-    ###### I NEED TO SOLVE THIS #####
-
-    hh1_unsuccess_grouped = hh1_phone_info.groupby('record_id')[['hh_date','fu_type','hh_child_seen','hh_why_not_child_seen']].last()
-
-  
-
- #   print(hh1_unsuccess_grouped)
-    hh1_unsuccess=hh1_unsuccess_grouped[(hh1_unsuccess_grouped['fu_type']==float(2))&((hh1_unsuccess_grouped['hh_why_not_child_seen']) == float(1))&((hh1_unsuccess_grouped['hh_child_seen']) == float(0))]
- #   print(hh1_unsuccess)
-    HH_not_done_yet = HH_not_done_yet.append(hh1_unsuccess.index.get_level_values('record_id'))
-
-    HH_not_done_yet = HH_not_done_yet.drop_duplicates()
- #   print(HH_not_done_yet)
-#    print(HH_not_done_yet)
-    return HH_not_done_yet
+    last_hh_done = redcap_data.loc[(slice(None), 'hhafter_1st_dose_o_arm_1'),:].groupby('record_id').last()
+    phone_unsuccess = last_hh_done[(last_hh_done['fu_type']==float(1))&((last_hh_done['phone_success']==float(0))|(last_hh_done['call_caretaker']==float(0)))]
+##    phone_drug_react = last_hh_done[(last_hh_done['fu_type']==float(1))&((last_hh_done['hh_drug_react']==float(1))|(last_hh_done['hh_health_complaint']==float(1)))]
+    visit_unsuccess = last_hh_done[((last_hh_done['fu_type']==float(2))|(last_hh_done['fu_type']==float(3)))&((last_hh_done['hh_child_seen']!=float(1))&(last_hh_done['reachable_status'] != float(1)))]
+    old_visit_unsuccess = last_hh_done[((last_hh_done['fu_type']!=float(1))&(last_hh_done['fu_type']!=float(2))&(last_hh_done['fu_type']!=float(3)))&((last_hh_done['hh_child_seen']==float(0))&(last_hh_done['hh_why_not_child_seen']== float(1)))]
+    print(old_visit_unsuccess)
+    HH_to_be_done = list(HH_not_done_yet) + list(phone_unsuccess.index.get_level_values('record_id')) + list(visit_unsuccess.index.get_level_values('record_id')) + list(old_visit_unsuccess.index.get_level_values('record_id'))
+    HH_to_be_done_2 = pd.Series(dtype='float64',index=HH_to_be_done).index
+    return HH_to_be_done_2
 
 
 def  get_record_ids_nc(redcap_data, days_to_nc):
@@ -292,8 +256,6 @@ def get_record_ids_end_15m(redcap_data, days_before, mrv2_age=15,about_to_turn=1
         record_ids_seen = finalized.index.get_level_values('record_id')
         about_15m_not_seen = about_15m_not_seen.difference(record_ids_seen)
     return about_15m_not_seen
-
-
 
 def get_record_ids_ms(redcap_data, days_after_epi, excluded_epi_visits):
     """Get the project record ids of the participants requiring a contact to know their vital status, i.e. if they are
@@ -994,7 +956,7 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert,blocked_records, f
 
     df_to_set_alarm = BW_REDCAP.reset_index()[['record_id','child_fu_status']]
     to_import_list= []
-    for k,el in df_to_set_alarm.T.iteritems():
+    for k,el in df_to_set_alarm.T.items():
         if el.record_id in records_bw:
             id = el.record_id
             if str(el.child_fu_status)=='nan':
@@ -1219,7 +1181,7 @@ def build_new_ms_alerts_df(redcap_data, record_ids, alert_string, event_names,la
     #last_epi_visit = redcap_data.loc[list(record_ids)][['int_date','a1m_date','hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date']]
     last_epi_visit = last_epi_visit[last_epi_visit.notnull()]
     new_last_visit = pd.DataFrame(columns=['redcap_event_name'])
-    for k,el in last_visit_dates.T.iteritems():
+    for k,el in last_visit_dates.T.items():
         if k in record_ids:
             last_visit = redcap_data.loc[k][['int_date','a1m_date','hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date']]
             last_visit = last_visit[last_visit.eq(el)]

@@ -61,6 +61,7 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
+
         # Next visit
         if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -201,6 +202,7 @@ if __name__ == '__main__':
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
+
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
