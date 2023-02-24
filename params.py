@@ -1,5 +1,7 @@
 import tokens
+from datetime import datetime
 
+currentMonth = datetime.now().month
 # REDCap parameters
 URL = tokens.URL
 TRIAL_PROJECTS = tokens.REDCAP_PROJECTS_ICARIA
@@ -36,8 +38,21 @@ TRIAL_ALL_EVENT_NAMES = {
     'after_1_month_from_arm_1e': 'AFTERMRV2',
     'adverse_events_arm_1': 'AE',
     'out_of_schedule_arm_1': 'OUTSCH'
+}
 
-
+MONTHS_DICT = {
+    '1': 'Jan',
+    '2': 'Feb',
+    '3': 'Mar',
+    '4': 'Apr',
+    '5': 'May',
+    '6': 'Jun',
+    '7': 'Jul',
+    '8': 'Aug',
+    '9': 'Sep',
+    '10': 'Oct',
+    '11': 'Nov',
+    '12': 'Des',
 }
 
 # Alerts general parameters
@@ -59,7 +74,7 @@ NV_ALERT = "NEXT VISIT"
 NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 
 # END OF FOLLOW UP
-DAYS_BEFORE_END_FU = 7  # Defined by In-Country Technical Coordinator
+DAYS_BEFORE_END_FU = 0  # Defined by In-Country Technical Coordinator
 END_FU_ALERT = "END F/U"
 END_FU_ALERT_STRING = END_FU_ALERT + " Pending: {birthday}"
 BORRAR_END_FU_ALERT_STRING = END_FU_ALERT + ": {birthday}"
@@ -90,9 +105,11 @@ MRV2_ALERT_STRING = MRV2_ALERT
 MRV2_MONTHS = 15
 DAYS_BEFORE_MRV2 = 0 # Defined by In-Country Technical Coordinator
 
-COHORT_ALERT = "COHORT Pending"
-COHORT_ALERT_STRING = COHORT_ALERT
-COHORT_MONTHS = 16
+FINALIZED_COHORT_STRING = "COH."
+OTHER_COHORT_ALERT = "COHORT Pending"
+NON_CONT_COHORT_ALERT = "(COHORT pending)"
+NON_CONT_COHORT_ALERT_STRING = NON_CONT_COHORT_ALERT
+NON_CONT_COHORT_MONTHS = 15
 DAYS_BEFORE_COHORT = 0
 
 
@@ -104,16 +121,16 @@ BW_ALERT_STRING = BW_ALERT
 # ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 
 #NC_ALERT dismissed 20221027 abofill
-TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALERT,COMPLETION_STRING, BW_ALERT,COHORT_ALERT]
+TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALERT,COMPLETION_STRING, BW_ALERT,NON_CONT_COHORT_ALERT,OTHER_COHORT_ALERT,FINALIZED_COHORT_STRING]
 
 COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
 # DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
-                      'int_next_visit', 'int_date', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen',
+                      'int_next_visit', 'int_date', 'int_sp', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen',
                       'hh_date','study_number', 'call_caretaker','reachable_status',
                       'household_follow_up_complete', 'a1m_date', 'comp_date','phone_success','child_weight_birth',
                       'child_birth_weight_known','phone_success','fu_type','hh_drug_react','hh_health_complaint',
-                      'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter',
+                      'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter', 'death_reported_date',
                       'hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date',
                       'phone_child_status']
