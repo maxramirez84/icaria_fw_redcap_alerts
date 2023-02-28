@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from datetime import timedelta
 
 import pandas as pd
@@ -972,7 +972,7 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert,blocked_records, f
 
             to_import_list.append({'record_id': id , 'child_fu_status':status})
     response = redcap_project.import_records(to_import_list)
-    print("[BIRTH WEIGHT] Alerts setup: {}".format(response.get('count')))
+    print("[BIRTH WEIGHT] Alerts setup: {}\n".format(response.get('count')))
 
 
 # MORTALITY SURVEILLANCE
@@ -1278,29 +1278,32 @@ def set_mrv2_alerts(redcap_project, redcap_project_df,mrv2_alert, mrv2_alert_str
 
 
 
+############################################################################################
+############################### COHORT'S STUDY #############################################
+############################################################################################
 
-
-
-##
-#############################################################################################################################################################################################
-#############################################################################################################################################################################################
-
-def cohort_stopping_sistem(redcap_project,nletter,date_='2023-03'):
+def cohort_stopping_sistem(redcap_project,nletter):
     """
     :param redcap_project_df: Data frame containing all data exported from the REDCap project
     :type redcap_project_df: pandas.DataFrame
 
     :return: List of record ids per letter
     """
+    date_ = "-".join(str(date.today()).split("-")[:-1])
+    date_='2023-03'
+    """ ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
+
+
 
     xres = redcap_project.reset_index()
     actual_cohorts = xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1'][['record_id','ch_his_date']]
     letters_ = xres[(xres['record_id'].isin(list(actual_cohorts['record_id'].unique())))&(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')][['record_id','int_random_letter']]
+    if actual_cohorts.empty:
+        STOP = False
+        return STOP
     records_dates_=actual_cohorts[actual_cohorts['ch_his_date'].str.contains(date_)]
-
     cohorts_from_this_months = pd.merge(records_dates_,letters_, on='record_id')
-
-    print(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'])
+    #print(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'])
 
     STOP = False
     if len(cohorts_from_this_months.groupby('int_random_letter').count())==6 and sum(list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id']>=nletter))==6: #False not in list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id']>=nletter):
@@ -1313,14 +1316,11 @@ def cohort_stopping_sistem(redcap_project,nletter,date_='2023-03'):
                 el = nletter
             sum_+= el
         nletter_comp = nletter + (nletter*6 - sum_)
-        print(nletter_comp)
+        #print(nletter_comp)
         if sum(list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id']>=nletter_comp))>=4:
             print("It has been recruited the minimum participants per letter + compensation (" + str(nletter) + ") in, at least, 4 letters, and the alert for this HF needs to stop.")
             STOP = True
-    print(STOP)
     return STOP
-
-
 
 def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
 
@@ -1330,14 +1330,33 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
     sp_doses = x.groupby('record_id')['int_sp'].count()
     record_id_4_doses = x.groupby('record_id').count()[sp_doses>3].index
 
+    ## Calculating if last SP dose was administered  more than 14 days before
+    last_SP = xres[(xres['int_sp']==1)&(xres['record_id'].isin(record_id_4_doses))].groupby('record_id')['int_date'].last().reset_index()
+    more_14days = []
+    for k,el in last_SP.T.items():
+        days_from_SP = datetime.today() - datetime.strptime(el['int_date'],"%Y-%m-%d %H:%M:%S")
+        if days_from_SP.days>=14:
+            more_14days.append(True)
+        else:
+            more_14days.append(False)
+    try:
+        record_id_4_doses = last_SP[more_14days]['record_id']
+    except:
+        record_id_4_doses = []
+
     ## RECORDS THAT MEET THE MAX-MIN AGE RANGE CRITERIA
     records_range_age =  get_record_ids_range_age(redcap_data, min_age,max_age)
 
-    cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age))) ##################### THIS DOES NOT WOOOOOOOORK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+    cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
     # Find those participants deaths or migrated that can't be part of the list
-    deaths = xres[(xres['redcap_event_name']=='end_of_fu_arm_1')&(~xres['death_reported_date'].isnull())]['record_id'].unique()
-    migrated = xres[(xres['redcap_event_name']=='out_of_schedule_arm_1')&(~xres['mig_date'].isnull())]['record_id'].unique()
+    try:
+        deaths = xres[(xres['redcap_event_name']=='end_of_fu_arm_1')&(~xres['death_reported_date'].isnull())]['record_id'].unique()
+    except:
+        deaths = []
+    try:
+        migrated = xres[(xres['redcap_event_name']=='out_of_schedule_arm_1')&(~xres['mig_date'].isnull())]['record_id'].unique()
+    except:
+        migrated = []
     # Find those participants already recruited in the COHORTS substudy that can't be part of the list
     already_cohorts = xres[(xres['redcap_event_name']=='cohort_after_mrv_2_arm_1')&(~xres['ch_his_date'].isnull())]['record_id'].unique()
     letters_to_be_contacted = xres[(xres['record_id'].isin(cohorts_to_be_contacted)) &
@@ -1345,17 +1364,20 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
                                    (~xres['record_id'].isin(list(migrated))) &
                                    (~xres['record_id'].isin(list(already_cohorts))) &
                                    (xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')][['record_id','int_random_letter']]
-    print(letters_to_be_contacted.groupby('int_random_letter').count())
+    #print(letters_to_be_contacted.groupby('int_random_letter').count())
+
     return letters_to_be_contacted
 
 def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
     xre = redcap_data.reset_index()
+    end_date = date.today()
     end_date = datetime.strptime(date_, "%Y-%m-%d").date()
-    dob_count = 0
+    """ ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
 
     dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
     dob_df = pd.DataFrame(index=xre.record_id.unique(), columns=['dob_diff'])
 
+    dob_count = 0
     for record_id in xre.record_id.unique():
         start_date = datetime.strptime(dobs[dob_count], "%Y-%m-%d")
         delta = relativedelta(end_date, start_date)
@@ -1366,10 +1388,9 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
 
 # MRV2 VISIT ALERT. MONTH 15 OF AGE
-def set_nc_cohort_alerts(project_key,redcap_project, redcap_project_df,cohort_alert, cohort_alert_string, alert_date_format,
-                      days_before, blocked_records, fu_status_event, months):
+def set_nc_cohort_alerts(project_key,redcap_project, redcap_project_df,cohort_alert, cohort_alert_string,
+                      blocked_records, fu_status_event):
     """
-
     :param redcap_project: A REDCap project class to communicate with the REDCap API
     :type redcap_project: redcap.Project
     :param redcap_project_df: Data frame containing all data exported from the REDCap project
@@ -1394,107 +1415,114 @@ def set_nc_cohort_alerts(project_key,redcap_project, redcap_project_df,cohort_al
 
     records_to_flag = []
     current_month = datetime.now().month
-    cohort_list_df = pd.read_excel("./list_eligibles.xlsx")
-
-    if project_key in cohort_list_df['HF'].unique():
-        min_age = cohort_list_df[cohort_list_df['HF']==project_key]['min_age'].unique()[0]
-        max_age = cohort_list_df[cohort_list_df['HF']==project_key]['max_age'].unique()[0]
-        nletter = cohort_list_df[cohort_list_df['HF']==project_key]['n_letter'].unique()[0]
-        print(min_age,max_age,nletter)
+    cohort_list_df = pd.read_excel(params.COHORT_RECRUITMENT_PATH,str(current_month))
+    big_project_key = project_key.split(".")[0]
+    if big_project_key.split(".")[0] in cohort_list_df['HF'].unique():
+        min_age = cohort_list_df[cohort_list_df['HF']==big_project_key]['min_age'].unique()[0]
+        max_age = cohort_list_df[cohort_list_df['HF']==big_project_key]['max_age'].unique()[0]
+        nletter = cohort_list_df[cohort_list_df['HF']==big_project_key]['target_letter'].unique()[0]
+#        print(current_month,project_key,min_age,max_age,nletter)
 
         letters_to_be_contacted = get_record_ids_nc_cohort(redcap_project_df, max_age, min_age, nletter)
 
-    need_to_stop = cohort_stopping_sistem(redcap_project_df, nletter)
-    if need_to_stop==False:
-        records_to_be_contacted = letters_to_be_contacted['record_id'].unique()
-        records_to_be_contacted_index = pd.DataFrame(index=records_to_be_contacted).index
-    else:
-        records_to_be_contacted_index = pd.DataFrame(index=[]).index
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  comprovar que això està funcionant!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        need_to_stop = cohort_stopping_sistem(redcap_project_df, nletter)
+        if need_to_stop==False:
+            records_to_be_contacted = letters_to_be_contacted['record_id'].unique()
+            records_to_be_contacted_index = pd.DataFrame(index=records_to_be_contacted).index
+        else:
+            records_to_be_contacted_index = pd.DataFrame(index=[]).index
 
 
+        # Remove those ids that must be ignored
+        if blocked_records is not None:
+            records_to_flag = records_to_be_contacted_index.difference(blocked_records)
 
-    # Remove those ids that must be ignored
-    if blocked_records is not None:
-        records_to_flag = records_to_be_contacted_index.difference(blocked_records)
-
-    # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, cohort_alert, fu_status_event)
-    # Check which of the records with alerts are not anymore in the records to flag (i.e. participants who were already
-    # visited at home for the end of the trial follow up
-    if records_with_alerts is not None:
-        alerts_to_be_removed = records_with_alerts.difference(records_to_flag)
-        # Import data into the REDCap project: Alerts removal
-        REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
-#        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in alerts_to_be_removed]
-        to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(cohort_alert_string)[-1]} for rec_id in alerts_to_be_removed]
-        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        # Get the project records ids of the participants with an active alert
+        records_with_alerts = get_active_alerts(redcap_project_df, cohort_alert, fu_status_event)
+        # Check which of the records with alerts are not anymore in the records to flag (i.e. participants who were already
+        # visited at home for the end of the trial follow up
+        if records_with_alerts is not None:
+            alerts_to_be_removed = records_with_alerts.difference(records_to_flag)
+            # Import data into the REDCap project: Alerts removal
+            REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
+            to_import_dict = [{'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(cohort_alert_string)[-1]} for rec_id in alerts_to_be_removed]
+            response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
 
 
-        print("[ICARIA COHORT] Alerts removal: {}".format(response.get('count')))
-    else:
-        print("[ICARIA COHORT] Alerts removal: None")
-    # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-
-    to_import_df = build_cohort_alerts_df(
-        redcap_data=redcap_project_df,
-        record_ids=records_to_flag,
-        alert_string=cohort_alert_string,
-        alert_date_format=alert_date_format,
-        months=months
-    )
-
-    # Import data into the REDCap project: Alerts setup
-    to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
-                      for rec_id, participant in to_import_df.iterrows()]
-    response = redcap_project.import_records(to_import_dict)
-    print(to_import_dict)
-    print("[ICARIA COHORT] Alerts setup: {}".format(response.get('count')))
+            print("[ICARIA COHORT] Alerts removal: {}".format(response.get('count')))
+        else:
+            print("[ICARIA COHORT] Alerts removal: None")
 
 
-    to_import_actual_cohorts,to_import_removed_cohorts = set_label_cohorts(redcap_project_df)
-    # Import data into the REDCap project: Alerts setup
-    to_import_removed_cohorts = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
-                      for rec_id, participant in to_import_removed_cohorts.iterrows()]
-    response = redcap_project.import_records(to_import_removed_cohorts)
-    print("[ICARIA COHORT REMOVED PARTICIPANTS] setup: {}".format(response.get('count')))
+        to_import_removed_cohorts = remove_labels_cohorts(redcap_project_df)
+        # Import data into the REDCap project: Alerts setup
+        to_import_removed_cohorts = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                          for rec_id, participant in to_import_removed_cohorts.iterrows()]
+        response = redcap_project.import_records(to_import_removed_cohorts)
+        print("[ICARIA COHORT PARTICIPANTS] Removal: {}".format(response.get('count')))
 
 
-    to_import_actual_cohorts = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
-                      for rec_id, participant in to_import_actual_cohorts.iterrows()]
-    response = redcap_project.import_records(to_import_actual_cohorts)
-    print("[ICARIA COHORT PARTICIPANTS] setup: {}".format(response.get('count')))
+        # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
+
+        to_import_df = build_cohort_alerts_df(
+            record_ids=records_to_flag,
+            alert_string=cohort_alert_string,
+            redcap_project=redcap_project
+        )
+        # Import data into the REDCap project: Alerts setup
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                          for rec_id, participant in to_import_df.iterrows()]
+        response = redcap_project.import_records(to_import_dict)
+        print("[ICARIA COHORT] Alerts setup: {}".format(response.get('count')))
 
 
-def set_label_cohorts(redcap_data):
+        to_import_actual_cohorts = set_label_cohorts(redcap_project)
+        to_import_actual_cohorts = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                          for rec_id, participant in to_import_actual_cohorts.iterrows()]
+        response = redcap_project.import_records(to_import_actual_cohorts)
+        print("[ICARIA COHORT PARTICIPANTS] setup: {}".format(response.get('count')))
+
+def remove_labels_cohorts(redcap_data):
+    xres = redcap_data.reset_index()
+    actual_cohorts = list(xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1']['record_id'])
+    actual_labeled_cohort = xres[(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')&(xres['child_fu_status'].str.contains('COH\.'))][['record_id','child_fu_status']]
+    list_labels_to_remove = list(set(actual_labeled_cohort['record_id'])-set(actual_cohorts))
+
+    df_to_remove_alarm=pd.DataFrame(index=list_labels_to_remove, columns=['child_fu_status'])
+
+    for k,el in actual_labeled_cohort.T.items():
+        if el['record_id'] in list_labels_to_remove:
+            df_to_remove_alarm['child_fu_status'][el['record_id']] = el['child_fu_status'].replace("COH.","")
+
+    return df_to_remove_alarm
+
+def set_label_cohorts(redcap_project):
+    redcap_data = redcap_project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+
     xres = redcap_data.reset_index()
     actual_cohorts = list(xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1']['record_id'])
     actual_child_fu_status = xres[(xres['record_id'].isin(actual_cohorts))&(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')][['record_id','child_fu_status']] #~xres['child_fu_status'].isnull())
     df_to_set_alarm=pd.DataFrame(index=list(actual_cohorts),columns=['child_fu_status'])
-
-
     actual_labeled_cohort = xres[(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')&(xres['child_fu_status'].str.contains('COH\.'))][['record_id','child_fu_status']]
     list_labels_to_remove = list(set(actual_labeled_cohort['record_id'])-set(actual_cohorts))
     df_to_remove_alarm=pd.DataFrame(index=list_labels_to_remove, columns=['child_fu_status'])
-    """GET RECORDS IDS FROM CH_DATE DONE, NOT FROM THE not STATUS"""
 
-    """ I NEED TO REMOVE ALL THE COH that are not part anymore of the cohort. Now only takes into account the ones that has COH. LABEL"""
     for k,el in actual_labeled_cohort.T.items():
         if el['record_id'] in list_labels_to_remove:
             df_to_remove_alarm['child_fu_status'][el['record_id']] = el['child_fu_status'].replace("COH.","")
-        else:
-            if str(el['child_fu_status']) == 'nan' or el['child_fu_status'] is None:
+    for k, el in actual_child_fu_status.T.items():
+        if el['record_id'] not in list_labels_to_remove:
+            if str(el['child_fu_status']) == 'nan' or str(el['child_fu_status']) == 'NaN' or el['child_fu_status'] is None:
                 df_to_set_alarm['child_fu_status'][el['record_id']] = params.FINALIZED_COHORT_STRING
             elif str(params.FINALIZED_COHORT_STRING) in str(el['child_fu_status']):
-                df_to_set_alarm['child_fu_status'][el['record_id']] = el['child_fu_status']
+                df_to_set_alarm['child_fu_status'][el['record_id']] = el['child_fu_status'].replace("(COHORT pending)","")
             else:
-                df_to_set_alarm['child_fu_status'][el['record_id']] = params.FINALIZED_COHORT_STRING+ str(el['child_fu_status'])
+                df_to_set_alarm['child_fu_status'][el['record_id']] = params.FINALIZED_COHORT_STRING+ str(el['child_fu_status'].replace("(COHORT pending)",""))
 
-    print(df_to_remove_alarm)
-    return df_to_set_alarm, df_to_remove_alarm
+    return df_to_set_alarm
 
 
-def build_cohort_alerts_df(redcap_data, record_ids, alert_string, alert_date_format, months):
+def build_cohort_alerts_df(record_ids, alert_string,redcap_project):
     """Build dataframe with record ids and dates when they turn the specified months of every study participant who is
     turning the specified months in the next days or she has already the specified months but she hasn't been visited
     for the end of the trial follow up.
@@ -1516,22 +1544,18 @@ def build_cohort_alerts_df(redcap_data, record_ids, alert_string, alert_date_for
     :rtype: pandas.DataFrame
     """
     # Append to record ids, the 18 moths birthday of the participant
+    redcap_data = redcap_project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+
     fustatus = redcap_data.loc[record_ids, ['child_fu_status']]
     fustatus = fustatus.groupby('record_id')['child_fu_status'].last()  # To move from a DataFrame to a Series
 
-    print(alert_string)
     df_to_set_alarm=pd.DataFrame(index=record_ids,columns=['child_fu_status'])
     for k,el in fustatus.T.items():
         if el==None:
             df_to_set_alarm['child_fu_status'][k] = alert_string
         elif el==alert_string:
             df_to_set_alarm['child_fu_status'][k] = alert_string
-        else:#elif "(COH pending)" in el:
+        else:
             df_to_set_alarm['child_fu_status'][k] = alert_string + el.split(alert_string)[-1]
-        #else:
-        #    df_to_set_alarm['child_fu_status'][k] = alert_string + el
-    # Transform data to be imported into the child_status_fu variable into the REDCap project
-#    if not df_to_set_alarm.empty:
-#        df_to_set_alarm['child_fu_status'] = df_to_set_alarm[['child_fu_status']].apply(
-#            lambda x: alert_string.format(child_fu_status=x[0]), axis=1)
+
     return df_to_set_alarm
