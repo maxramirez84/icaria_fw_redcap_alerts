@@ -1415,7 +1415,7 @@ def set_nc_cohort_alerts(project_key,redcap_project, redcap_project_df,cohort_al
 
     records_to_flag = []
     current_month = datetime.now().month
-    cohort_list_df = pd.read_excel(params.COHORT_RECRUITMENT_PATH,str(current_month))
+    cohort_list_df = pd.read_excel(tokens.COHORT_RECRUITMENT_PATH,str(current_month))
     big_project_key = project_key.split(".")[0]
     if big_project_key.split(".")[0] in cohort_list_df['HF'].unique():
         min_age = cohort_list_df[cohort_list_df['HF']==big_project_key]['min_age'].unique()[0]
