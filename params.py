@@ -59,7 +59,7 @@ NV_ALERT = "NEXT VISIT"
 NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 
 # END OF FOLLOW UP
-DAYS_BEFORE_END_FU = 7  # Defined by In-Country Technical Coordinator
+DAYS_BEFORE_END_FU = 0  # Defined by In-Country Technical Coordinator
 END_FU_ALERT = "END F/U"
 END_FU_ALERT_STRING = END_FU_ALERT + " Pending: {birthday}"
 BORRAR_END_FU_ALERT_STRING = END_FU_ALERT + ": {birthday}"

@@ -55,7 +55,7 @@ def get_record_ids_tbv(redcap_data):
 ##    phone_drug_react = last_hh_done[(last_hh_done['fu_type']==float(1))&((last_hh_done['hh_drug_react']==float(1))|(last_hh_done['hh_health_complaint']==float(1)))]
     visit_unsuccess = last_hh_done[((last_hh_done['fu_type']==float(2))|(last_hh_done['fu_type']==float(3)))&((last_hh_done['hh_child_seen']!=float(1))&(last_hh_done['reachable_status'] != float(1)))]
     old_visit_unsuccess = last_hh_done[((last_hh_done['fu_type']!=float(1))&(last_hh_done['fu_type']!=float(2))&(last_hh_done['fu_type']!=float(3)))&((last_hh_done['hh_child_seen']==float(0))&(last_hh_done['hh_why_not_child_seen']== float(1)))]
-    print(old_visit_unsuccess)
+    #print(old_visit_unsuccess)
     HH_to_be_done = list(HH_not_done_yet) + list(phone_unsuccess.index.get_level_values('record_id')) + list(visit_unsuccess.index.get_level_values('record_id')) + list(old_visit_unsuccess.index.get_level_values('record_id'))
     HH_to_be_done_2 = pd.Series(dtype='float64',index=HH_to_be_done).index
     return HH_to_be_done_2
@@ -197,7 +197,7 @@ def get_record_ids_end_trial_fu(redcap_data, days_before, fu_age=18,about_to_tur
     finalized = x.query(
         "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
         "redcap_repeat_instrument == 'household_follow_up' and "
-        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or hh_why_not_child_seen == 4)"
+        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or hh_why_not_child_seen == 4 or hh_why_not_child_seen == 5)"
     )
 
     about_18m_not_seen = about_18m.index
