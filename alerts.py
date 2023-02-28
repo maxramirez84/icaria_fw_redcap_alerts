@@ -1293,7 +1293,7 @@ def cohort_stopping_sistem(redcap_project,nletter):
     date_='2023-03'
     """ ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
 
-
+    """ LOOK INTO IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
 
     xres = redcap_project.reset_index()
     actual_cohorts = xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1'][['record_id','ch_his_date']]
