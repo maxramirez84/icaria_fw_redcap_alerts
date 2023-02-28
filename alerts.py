@@ -1328,10 +1328,13 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
     x = redcap_data
     xres = x.reset_index()
     sp_doses = x.groupby('record_id')['int_sp'].count()
-    record_id_4_doses = x.groupby('record_id').count()[sp_doses>3].index
-
+    record_id_only_4_doses = x.groupby('record_id').count()[sp_doses==4].index
+    record_id_4_doses = x.groupby('record_id').count()[sp_doses>4].index
+    """ AIXÒ S'HA DE MIRAR BÉ, LO DE L'SP < 14 DIES. PERQUÈ LES XIFRES VAN VARIANT MOLT"""
     ## Calculating if last SP dose was administered  more than 14 days before
-    last_SP = xres[(xres['int_sp']==1)&(xres['record_id'].isin(record_id_4_doses))].groupby('record_id')['int_date'].last().reset_index()
+    #print(record_id_only_4_doses)
+
+    last_SP = xres[(xres['int_sp']==1)&(xres['record_id'].isin(record_id_only_4_doses))].groupby('record_id')['int_date'].last().reset_index()
     more_14days = []
     for k,el in last_SP.T.items():
         days_from_SP = datetime.today() - datetime.strptime(el['int_date'],"%Y-%m-%d %H:%M:%S")
@@ -1340,13 +1343,20 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
         else:
             more_14days.append(False)
     try:
-        record_id_4_doses = last_SP[more_14days]['record_id']
+        record_id_only_4_doses = last_SP[more_14days]['record_id']
     except:
-        record_id_4_doses = []
+        record_id_only_4_doses = []
 
+    #print(record_id_only_4_doses)
+    record_id_4_doses = list(record_id_4_doses)
+    #print(record_id_4_doses)
+    for el in list(record_id_only_4_doses):
+        if el not in record_id_4_doses:
+            record_id_4_doses.append(el)
+    #print(record_id_4_doses)
     ## RECORDS THAT MEET THE MAX-MIN AGE RANGE CRITERIA
     records_range_age =  get_record_ids_range_age(redcap_data, min_age,max_age)
-
+#    print(records_range_age)
     cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
     # Find those participants deaths or migrated that can't be part of the list
     try:
@@ -1382,7 +1392,7 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
         start_date = datetime.strptime(dobs[dob_count], "%Y-%m-%d")
         delta = relativedelta(end_date, start_date)
         res_months = delta.months + (delta.years * 12)
-        dob_df.T[record_id]['dob_diff']= res_months+1
+        dob_df.loc[record_id]['dob_diff']= res_months+1
         dob_count += 1
 
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
