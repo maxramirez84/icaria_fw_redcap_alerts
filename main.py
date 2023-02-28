@@ -15,13 +15,13 @@ import params
 import alerts
 
 __author__ = "Maximo Ramirez Robles"
-__copyright__ = "Copyright 2021, ISGlobal Maternal, Child and Reproductive Health"
+__copyright__ = "Copyright 2023, ISGlobal Maternal, Child and Reproductive Health"
 __credits__ = ["Maximo Ramirez Robles"]
 __license__ = "MIT"
 __version__ = "0.0.1"
 __date__ = "20210323"
-__maintainer__ = "Maximo Ramirez Robles"
-__email__ = "maximo.ramirez@isglobal.org"
+__maintainer__ = "Andreu Bofill"
+__email__ = "andreu.bofill@isglobal.org"
 __status__ = "Dev"
 
 if __name__ == '__main__':
@@ -37,6 +37,8 @@ if __name__ == '__main__':
         df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
         # Custom status
+
+
         custom_status_ids = alerts.get_record_ids_with_custom_status(
             redcap_data=df,
             defined_alerts=params.TRIAL_DEFINED_ALERTS,
@@ -46,7 +48,24 @@ if __name__ == '__main__':
         # I.e. they will be overwritten by the following alerts if the flagging condition is met for more than one
         # alert.
 
+        # ICARIA NON-CONTEMPORARY COHORT
+        if params.NON_CONT_COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
+            alerts.set_nc_cohort_alerts(
+                project_key=project_key,
+                redcap_project=project,
+                redcap_project_df=df,
+                cohort_alert=params.NON_CONT_COHORT_ALERT,
+                cohort_alert_string=params.NON_CONT_COHORT_ALERT,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_COHORT,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
+                months=params.NON_CONT_COHORT_MONTHS
+            )
+        break
         # Households to be visited
         if params.TBV_ALERT in params.TRIAL_DEFINED_ALERTS:
             alerts.set_tbv_alerts(
@@ -128,7 +147,6 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
-
         """
             # NEW Mortality surveillance visits
         if params.MS_ALERT in params.TRIAL_DEFINED_ALERTS:
@@ -169,6 +187,24 @@ if __name__ == '__main__':
                 months=params.MRV2_MONTHS
             )
 
+        # ICARIA NON-CONTEMPORARY COHORT
+        if params.NON_CONT_COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+
+            alerts.set_nc_cohort_alerts(
+                project_key=project_key,
+                redcap_project=project,
+                redcap_project_df=df,
+                cohort_alert=params.NON_CONT_COHORT_ALERT,
+                cohort_alert_string=params.NON_CONT_COHORT_ALERT,
+                alert_date_format=params.ALERT_DATE_FORMAT,
+                days_before=params.DAYS_BEFORE_COHORT,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
+                months=params.NON_CONT_COHORT_MONTHS
+            )
+
 
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
@@ -202,7 +238,7 @@ if __name__ == '__main__':
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-
+        break
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
