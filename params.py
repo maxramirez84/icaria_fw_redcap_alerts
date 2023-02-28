@@ -40,20 +40,6 @@ TRIAL_ALL_EVENT_NAMES = {
     'out_of_schedule_arm_1': 'OUTSCH'
 }
 
-MONTHS_DICT = {
-    '1': 'Jan',
-    '2': 'Feb',
-    '3': 'Mar',
-    '4': 'Apr',
-    '5': 'May',
-    '6': 'Jun',
-    '7': 'Jul',
-    '8': 'Aug',
-    '9': 'Sep',
-    '10': 'Oct',
-    '11': 'Nov',
-    '12': 'Des',
-}
 
 # Alerts general parameters
 ALERT_DATE_FORMAT = "%b %d"
@@ -109,8 +95,9 @@ FINALIZED_COHORT_STRING = "COH."
 OTHER_COHORT_ALERT = "COHORT Pending"
 NON_CONT_COHORT_ALERT = "(COHORT pending)"
 NON_CONT_COHORT_ALERT_STRING = NON_CONT_COHORT_ALERT
-NON_CONT_COHORT_MONTHS = 15
-DAYS_BEFORE_COHORT = 0
+COHORT_RECRUITMENT_PATH = "/home/abofill/Documents/github/py_icaria_fw_redcap_alerts/cohort_recruitment.xlsx"
+"""CANVIAR UN COP ESTIGUI AL SERVIDOR"""
+""" ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
 
 
 # BIRTHS WEIGHTS ALERT. If not collected
