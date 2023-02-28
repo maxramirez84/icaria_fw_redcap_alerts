@@ -1303,7 +1303,7 @@ def cohort_stopping_sistem(redcap_project,nletter):
         return STOP
     records_dates_=actual_cohorts[actual_cohorts['ch_his_date'].str.contains(date_)]
     cohorts_from_this_months = pd.merge(records_dates_,letters_, on='record_id')
-    #print(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'])
+    print(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'])
 
     STOP = False
     if len(cohorts_from_this_months.groupby('int_random_letter').count())==6 and sum(list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id']>=nletter))==6: #False not in list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id']>=nletter):
@@ -1329,7 +1329,6 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
     xres = x.reset_index()
     sp_doses = x.groupby('record_id')['int_sp'].count()
     record_id_4_doses = x.groupby('record_id').count()[sp_doses>3].index
-
     ## Calculating if last SP dose was administered  more than 14 days before
     last_SP = xres[(xres['int_sp']==1)&(xres['record_id'].isin(record_id_4_doses))].groupby('record_id')['int_date'].last().reset_index()
     more_14days = []
@@ -1347,6 +1346,7 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
     ## RECORDS THAT MEET THE MAX-MIN AGE RANGE CRITERIA
     records_range_age =  get_record_ids_range_age(redcap_data, min_age,max_age)
 
+    #print(records_range_age)
     cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
     # Find those participants deaths or migrated that can't be part of the list
     try:
@@ -1373,18 +1373,16 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
     end_date = date.today()
     end_date = datetime.strptime(date_, "%Y-%m-%d").date()
     """ ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
-
+    
     dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
     dob_df = pd.DataFrame(index=xre.record_id.unique(), columns=['dob_diff'])
-
     dob_count = 0
     for record_id in xre.record_id.unique():
         start_date = datetime.strptime(dobs[dob_count], "%Y-%m-%d")
         delta = relativedelta(end_date, start_date)
         res_months = delta.months + (delta.years * 12)
-        dob_df.T[record_id]['dob_diff']= res_months+1
+        dob_df.loc[record_id]['dob_diff']= res_months+1
         dob_count += 1
-
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
 
 # MRV2 VISIT ALERT. MONTH 15 OF AGE
@@ -1421,7 +1419,7 @@ def set_nc_cohort_alerts(project_key,redcap_project, redcap_project_df,cohort_al
         min_age = cohort_list_df[cohort_list_df['HF']==big_project_key]['min_age'].unique()[0]
         max_age = cohort_list_df[cohort_list_df['HF']==big_project_key]['max_age'].unique()[0]
         nletter = cohort_list_df[cohort_list_df['HF']==big_project_key]['target_letter'].unique()[0]
-#        print(current_month,project_key,min_age,max_age,nletter)
+        #print(current_month,project_key,min_age,max_age,nletter)
 
         letters_to_be_contacted = get_record_ids_nc_cohort(redcap_project_df, max_age, min_age, nletter)
 
