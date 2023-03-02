@@ -1290,10 +1290,8 @@ def cohort_stopping_sistem(redcap_project,nletter):
     :return: List of record ids per letter
     """
     date_ = "-".join(str(date.today()).split("-")[:-1])
-    date_='2023-03'
-    """ ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
-
-    """ LOOK INTO IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
+    #date_='2023-03'
+    #""" ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
 
     xres = redcap_project.reset_index()
     actual_cohorts = xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1'][['record_id','ch_his_date']]
@@ -1381,8 +1379,8 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age, nletter):
 def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
     xre = redcap_data.reset_index()
     end_date = date.today()
-    end_date = datetime.strptime(date_, "%Y-%m-%d").date()
-    """ ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
+    #end_date = datetime.strptime(date_, "%Y-%m-%d").date()
+    #""" ELIMINAR AQUESTA LÍNIA ABANS DE PENJAR-HO"""
 
     dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
     dob_df = pd.DataFrame(index=xre.record_id.unique(), columns=['dob_diff'])
@@ -1495,11 +1493,11 @@ def set_nc_cohort_alerts(project_key,redcap_project, redcap_project_df,cohort_al
 def remove_labels_cohorts(redcap_data):
     xres = redcap_data.reset_index()
     actual_cohorts = list(xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1']['record_id'])
+    if xres[~xres['child_fu_status'].isnull()].empty:
+        return pd.DataFrame(columns=['child_fu_status'])
     actual_labeled_cohort = xres[(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')&(xres['child_fu_status'].str.contains('COH\.'))][['record_id','child_fu_status']]
     list_labels_to_remove = list(set(actual_labeled_cohort['record_id'])-set(actual_cohorts))
-
     df_to_remove_alarm=pd.DataFrame(index=list_labels_to_remove, columns=['child_fu_status'])
-
     for k,el in actual_labeled_cohort.T.items():
         if el['record_id'] in list_labels_to_remove:
             df_to_remove_alarm['child_fu_status'][el['record_id']] = el['child_fu_status'].replace("COH.","")
@@ -1510,6 +1508,10 @@ def set_label_cohorts(redcap_project):
     redcap_data = redcap_project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
     xres = redcap_data.reset_index()
+
+    if xres[~xres['child_fu_status'].isnull()].empty:
+        return pd.DataFrame(columns=['child_fu_status'])
+
     actual_cohorts = list(xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1']['record_id'])
     actual_child_fu_status = xres[(xres['record_id'].isin(actual_cohorts))&(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')][['record_id','child_fu_status']] #~xres['child_fu_status'].isnull())
     df_to_set_alarm=pd.DataFrame(index=list(actual_cohorts),columns=['child_fu_status'])
