@@ -1369,7 +1369,7 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
 
     ## 3 CRITERIA: Within age range criteria
     records_range_age = get_record_ids_range_age(redcap_data, min_age, max_age)
-
+    print(records_range_age)
     cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
 
     # 4 CRITERIA: Not death or migrated participants
@@ -1398,7 +1398,7 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
     return letters_to_be_contacted
 
 
-def get_record_ids_range_age(redcap_data, min_age, max_age):
+def get_record_ids_range_age2(redcap_data, min_age, max_age):
     """
     Determine those participants that meet the specific range of age on this HF-month
 
@@ -1410,8 +1410,11 @@ def get_record_ids_range_age(redcap_data, min_age, max_age):
     :type str
     :return: None
     """
+
+    """ ERRORRRRRRRRRRRRRR"""
     xre = redcap_data.reset_index()
     end_date = date.today()
+    print(end_date)
     dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
     dob_df = pd.DataFrame(index=xre.record_id.unique(), columns=['dob_diff'])
 
@@ -1419,11 +1422,33 @@ def get_record_ids_range_age(redcap_data, min_age, max_age):
     for record_id in xre.record_id.unique():
         start_date = datetime.strptime(dobs[dob_count], "%Y-%m-%d")
         delta = relativedelta(end_date, start_date)
+        print(end_date,start_date,delta,delta.months)
         res_months = delta.months + (delta.years * 12)
         dob_df.loc[record_id]['dob_diff'] = res_months + 1
         dob_count += 1
 
     return dob_df[(dob_df['dob_diff'] <= max_age) & (dob_df['dob_diff'] >= min_age)].index
+
+def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
+    xre = redcap_data.reset_index()
+    end_date = datetime.strptime(date_, "%Y-%m-%d").date()
+    dob_count = 0
+
+    dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
+    dob_df = pd.DataFrame(index=xre.record_id.unique(), columns=['dob_diff'])
+
+    for record_id in xre.record_id.unique():
+        start_date = datetime.strptime(dobs[dob_count], "%Y-%m-%d")
+        delta = relativedelta(end_date, start_date)
+
+        res_months = delta.months + (delta.years * 12)
+        dob_df.T[record_id]['dob_diff']= res_months+1
+        dob_count += 1
+
+    return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
+
+
+
 
 
 # MRV2 VISIT ALERT. MONTH 15 OF AGE
