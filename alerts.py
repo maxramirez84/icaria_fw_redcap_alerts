@@ -1304,6 +1304,7 @@ def cohort_stopping_sistem(redcap_project, nletter):
         STOP = False
         return STOP
     records_dates_ = actual_cohorts[actual_cohorts['ch_his_date'].str.contains(date_)]
+
     cohorts_from_this_months = pd.merge(records_dates_, letters_, on='record_id')
     # print(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'])
 
@@ -1370,7 +1371,6 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
     ## 3 CRITERIA: Within age range criteria
     records_range_age = get_record_ids_range_age(redcap_data, min_age, max_age)
     cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
-
     # 4 CRITERIA: Not death or migrated participants
     try:
         deaths = xres[(xres['redcap_event_name'] == 'end_of_fu_arm_1') & (~xres['death_reported_date'].isnull())][
@@ -1393,7 +1393,6 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
                                    (xres['redcap_event_name'] == 'epipenta1_v0_recru_arm_1')][
         ['record_id', 'int_random_letter']]
     # print(letters_to_be_contacted.groupby('int_random_letter').count())
-
     return letters_to_be_contacted
 
 
@@ -1401,7 +1400,6 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
     xre = redcap_data.reset_index()
     #end_date = datetime.strptime(date_, "%Y-%m-%d").date()
     end_date = datetime.strptime("2023-0"+str(date.today().month)+"-01", "%Y-%m-%d").date()
-
     dob_count = 0
 
     dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
@@ -1472,7 +1470,6 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
 
         # Get the project records ids of the participants with an active alert
         records_with_alerts = get_active_alerts(redcap_project_df, cohort_alert, fu_status_event)
-
         # Check which of the records with alerts are not anymore in the records to flag (i.e. participants who were
         # already visited at home for the end of the trial follow up
         if records_with_alerts is not None:
