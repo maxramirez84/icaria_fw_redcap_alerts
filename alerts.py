@@ -1285,7 +1285,7 @@ def set_mrv2_alerts(redcap_project, redcap_project_df, mrv2_alert, mrv2_alert_st
 ############################### COHORT'S STUDY #############################################
 ############################################################################################
 
-def cohort_stopping_sistem(redcap_project, nletter):
+def cohort_stopping_sistem(redcap_project, nletter,projectkey):
     """
     :param redcap_project_df: Data frame containing all data exported from the REDCap project
     :type redcap_project_df: pandas.DataFrame
@@ -1300,15 +1300,14 @@ def cohort_stopping_sistem(redcap_project, nletter):
     actual_cohorts = xres[xres['redcap_event_name'] == 'cohort_after_mrv_2_arm_1'][['record_id', 'ch_his_date']]
     letters_ = xres[(xres['record_id'].isin(list(actual_cohorts['record_id'].unique()))) & (
                 xres['redcap_event_name'] == 'epipenta1_v0_recru_arm_1')][['record_id', 'int_random_letter']]
+    STOP = False
     if actual_cohorts.empty:
-        STOP = False
         return STOP
     records_dates_ = actual_cohorts[actual_cohorts['ch_his_date'].str.contains(date_)]
-
+    if projectkey == 'HF11' and date_=='2023-03':
+        records_dates_ = (records_dates_[~records_dates_['record_id'].isin([240,239])])
     cohorts_from_this_months = pd.merge(records_dates_, letters_, on='record_id')
     # print(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'])
-
-    STOP = False
     if len(cohorts_from_this_months.groupby('int_random_letter').count()) == 6 and sum(list(
             cohorts_from_this_months.groupby('int_random_letter').count()[
                 'record_id'] >= nletter)) == 6:  # False not in list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id']>=nletter):
@@ -1456,7 +1455,7 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
         letters_to_be_contacted = get_record_ids_nc_cohort(redcap_project_df, max_age, min_age)
 
         # Determine if we have already recruited the number of cohort participants needed for this HF-month
-        need_to_stop = cohort_stopping_sistem(redcap_project_df, nletter)
+        need_to_stop = cohort_stopping_sistem(redcap_project_df, nletter,project_key)
         if need_to_stop == False:
             records_to_be_contacted = letters_to_be_contacted['record_id'].unique()
             records_to_be_contacted_index = pd.DataFrame(index=records_to_be_contacted).index
