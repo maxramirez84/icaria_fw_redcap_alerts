@@ -1303,6 +1303,7 @@ def cohort_stopping_sistem(redcap_project, nletter,projectkey):
     STOP = False
     if actual_cohorts.empty:
         return STOP
+    actual_cohorts = actual_cohorts.dropna()
     records_dates_ = actual_cohorts[actual_cohorts['ch_his_date'].str.contains(date_)]
     if projectkey == 'HF11' and date_=='2023-03':
         records_dates_ = (records_dates_[~records_dates_['record_id'].isin([240,239])])
@@ -1386,7 +1387,6 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
         'record_id'].unique()
     # 6 CRITERIA: Participant is not completed
     completed_participants = xres[(xres['redcap_event_name']=='hhat_18th_month_of_arm_1')&(~xres['hh_date'].isnull())]['record_id'].unique()
-    #print(completed_participants)
     letters_to_be_contacted = xres[(xres['record_id'].isin(cohorts_to_be_contacted)) &
                                    (~xres['record_id'].isin(list(deaths))) &
                                    (~xres['record_id'].isin(list(migrated))) &
@@ -1394,8 +1394,8 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
                                    (~xres['record_id'].isin(list(completed_participants))) &
                                    (xres['redcap_event_name'] == 'epipenta1_v0_recru_arm_1')][
         ['record_id', 'int_random_letter']]
-    #print(letters_to_be_contacted)
 
+    #print(completed_participants)
     # print(letters_to_be_contacted.groupby('int_random_letter').count())
     return letters_to_be_contacted
 
@@ -1471,7 +1471,6 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
         else:
             # If the stopping rules are true, then the alert shouldn't be labeled, so we set the df empty
             records_to_be_contacted_index = pd.DataFrame(index=[]).index
-
         # Remove those ids that must be ignored
         if blocked_records is not None:
             records_to_flag = records_to_be_contacted_index.difference(blocked_records)
@@ -1505,12 +1504,12 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
             alert_string=cohort_alert_string,
             redcap_project=redcap_project
         )
-
         # Import data into the REDCap project: Alerts setup
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                           for rec_id, participant in to_import_df.iterrows()]
         response = redcap_project.import_records(to_import_dict)
         print("[ICARIA COHORT] Alerts setup: {}".format(response.get('count')))
+
         to_import_actual_cohorts = set_label_cohorts(redcap_project)
         to_import_actual_cohorts = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                                     for rec_id, participant in to_import_actual_cohorts.iterrows()]
@@ -1557,7 +1556,7 @@ def set_label_cohorts(redcap_project):
     if xres[~xres['child_fu_status'].isnull()].empty:
         return pd.DataFrame(columns=['child_fu_status'])
 
-    actual_cohorts = list(xres[xres['redcap_event_name'] == 'cohort_after_mrv_2_arm_1']['record_id'])
+    actual_cohorts = list(xres[(xres['redcap_event_name'] == 'cohort_after_mrv_2_arm_1')&(~xres['ch_his_date'].isnull())]['record_id'])
     actual_child_fu_status = xres[(xres['record_id'].isin(actual_cohorts)) &
                                   (xres['redcap_event_name'] == 'epipenta1_v0_recru_arm_1')][['record_id', 'child_fu_status']]
     df_to_set_alarm = pd.DataFrame(index=list(actual_cohorts), columns=['child_fu_status'])

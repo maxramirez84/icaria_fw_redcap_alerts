@@ -217,7 +217,6 @@ if __name__ == '__main__':
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-        break
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
