@@ -1369,7 +1369,6 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
 
     ## 3 CRITERIA: Within age range criteria
     records_range_age = get_record_ids_range_age(redcap_data, min_age, max_age)
-    print(records_range_age)
     cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
     # 4 CRITERIA: Not death or migrated participants
     try:
@@ -1385,13 +1384,18 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
     # 5 CRITERIA: Not already recruited in Cohort study
     already_cohorts = xres[(xres['redcap_event_name'] == 'cohort_after_mrv_2_arm_1') & (~xres['ch_his_date'].isnull())][
         'record_id'].unique()
-
+    # 6 CRITERIA: Participant is not completed
+    completed_participants = xres[(xres['redcap_event_name']=='hhat_18th_month_of_arm_1')&(~xres['hh_date'].isnull())]['record_id'].unique()
+    #print(completed_participants)
     letters_to_be_contacted = xres[(xres['record_id'].isin(cohorts_to_be_contacted)) &
                                    (~xres['record_id'].isin(list(deaths))) &
                                    (~xres['record_id'].isin(list(migrated))) &
                                    (~xres['record_id'].isin(list(already_cohorts))) &
+                                   (~xres['record_id'].isin(list(completed_participants))) &
                                    (xres['redcap_event_name'] == 'epipenta1_v0_recru_arm_1')][
         ['record_id', 'int_random_letter']]
+    #print(letters_to_be_contacted)
+
     # print(letters_to_be_contacted.groupby('int_random_letter').count())
     return letters_to_be_contacted
 
