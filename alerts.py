@@ -1369,6 +1369,7 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
 
     ## 3 CRITERIA: Within age range criteria
     records_range_age = get_record_ids_range_age(redcap_data, min_age, max_age)
+    print(records_range_age)
     cohorts_to_be_contacted = list(set(record_id_4_doses).intersection(list(records_range_age)))
     # 4 CRITERIA: Not death or migrated participants
     try:
@@ -1409,8 +1410,12 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
         delta = relativedelta(end_date, start_date)
 
         res_months = delta.months + (delta.years * 12)
-        dob_df.loc[record_id]['dob_diff']= res_months+1
+        if delta.days != 0:
+            res_months+=1
+        #print(record_id,start_date,end_date,delta,res_months,delta.months,delta.days)
+        dob_df.loc[record_id]['dob_diff']= res_months
         dob_count += 1
+    #print(dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)])
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
 
 
