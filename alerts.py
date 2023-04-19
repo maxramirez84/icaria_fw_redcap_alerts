@@ -210,18 +210,26 @@ def get_record_ids_end_trial_fu(redcap_data, days_before, fu_age=18, about_to_tu
     finalized = x.query(
         "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
         "redcap_repeat_instrument == 'household_follow_up' and "
-        "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or  "
-        "hh_why_not_child_seen == 4 or hh_why_not_child_seen == 5 or reachable_status== 2)"
+            "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or  "
+            "hh_why_not_child_seen == 4 or hh_why_not_child_seen == 5)"
     )
+    unreachable = x.query(
+        "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
+        "redcap_repeat_instrument == 'household_follow_up' and "
+        "reachable_status == 2")
+
 
     about_18m_not_seen = about_18m.index
+    record_ids_seen = None
+    records_unreachable = None
     if finalized is not None:
         record_ids_seen = finalized.index.get_level_values('record_id')
         about_18m_not_seen = about_18m_not_seen.difference(record_ids_seen)
+    if unreachable is not None:
+        records_unreachable = unreachable.index.get_level_values('record_id')
+        about_18m_not_seen = about_18m_not_seen.difference(records_unreachable)
 
-    else:
-        record_ids_seen = None
-    return about_18m_not_seen, record_ids_seen
+    return about_18m_not_seen, record_ids_seen, records_unreachable
 
 
 def get_record_ids_end_15m(redcap_data, days_before, mrv2_age=15, about_to_turn=14):
@@ -506,6 +514,8 @@ def build_end_fu_alerts_df(redcap_data, record_ids, alert_string, alert_date_for
     :rtype: pandas.DataFrame
     """
     # Append to record ids, the 18 moths birthday of the participant
+
+
     birthday = redcap_data.loc[record_ids, ['child_dob']]
     birthday = birthday.groupby('record_id')['child_dob'].max()  # To move from a DataFrame to a Series
     birthday = birthday.apply(lambda dob: dob + relativedelta(months=+months))  # Add specified months to dob
@@ -580,7 +590,7 @@ w
     if type_ == 'BW':
         active_alerts = active_alerts[active_alerts.str.endswith(alert)]
     else:
-        active_alerts = active_alerts[active_alerts.str.startswith(alert)]
+        active_alerts = active_alerts[(active_alerts.str.startswith(alert))|(active_alerts.str.startswith('COH.'+alert))]
 
     active_alerts.index = active_alerts.index.get_level_values('record_id')
 
@@ -838,7 +848,8 @@ def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert, fu_status_even
 
 # END FOLLOW UP
 def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_alert_string, alert_date_format,
-                      days_before, blocked_records, study, fu_status_event, months, completed_alert_string=None):
+                      days_before, blocked_records, study, fu_status_event, months, completed_alert_string=None,
+                      unreachable_alert_string=None):
     """Remove the End of F/U alerts of those participants that haven been already visited for the end of the
     the trial/study follow up. Setup alerts for those participants who are going to end follow up in days_before days.
         
@@ -868,19 +879,17 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
 
     records_to_flag = []
     if study == "TRIAL":
-        records_to_flag, records_completed = get_record_ids_end_trial_fu(redcap_project_df, days_before)
+        records_to_flag, records_completed, records_unreachable = get_record_ids_end_trial_fu(redcap_project_df, days_before)
     if study == "COHORT":
         # Ge        # Get the project records ids of the participants who are turning 18 months in days_before days from todayt the project records ids of the participants who are turning 15 months in days_before days from today
         records_to_flag = get_record_ids_end_cohort_fu(redcap_project_df, days_before)
-
     # Remove those ids that must be ignored
-
     if blocked_records is not None:
         records_to_flag = records_to_flag.difference(blocked_records)
+
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, end_fu_alert, fu_status_event)
     xres = redcap_project_df.reset_index()
-
     # Check which of the records with alerts are not anymore in the records to flag (i.e. participants who were already
     # visited at home for the end of the trial follow up
     if records_with_alerts is not None:
@@ -891,7 +900,6 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
         print("[END F/U] Alerts removal: {}".format(response.get('count')))
     else:
         print("[END F/U] Alerts removal: None")
-
     # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
     to_import_df = build_end_fu_alerts_df(
         redcap_data=redcap_project_df,
@@ -909,12 +917,30 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
 
     # COMPLETED PARTICIPANTS ALERT PART
     # BASED ON THE
-    if completed_alert_string is not None:
-        to_import_df = pandas.DataFrame(index=records_completed, columns=['child_fu_status'])
-        to_import_df['child_fu_status'] = completed_alert_string
+    if unreachable_alert_string is not None:
+        to_import_df = pandas.DataFrame(index=records_unreachable, columns=['child_fu_status'])
+        to_import_df['child_fu_status'] = unreachable_alert_string
+
+        to_import_df = to_import_df.reset_index(drop=False).drop_duplicates().set_index('record_id')
         # Import data into the REDCap project: Alerts setup
         to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                           for rec_id, participant in to_import_df.iterrows()]
+
+        real_unreachable = records_unreachable.difference(records_completed)
+        print(records_unreachable.difference(real_unreachable))
+        response = redcap_project.import_records(to_import_dict)
+
+        print("[UNREACHABLE PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
+        print("[REAL UNREACHABLE PARTICIPANTS] Alerts setup: {}".format(len(real_unreachable)))
+    if completed_alert_string is not None:
+        to_import_df = pandas.DataFrame(index=records_completed, columns=['child_fu_status'])
+        to_import_df['child_fu_status'] = completed_alert_string
+        to_import_df = to_import_df.reset_index(drop=False).drop_duplicates().set_index('record_id')
+
+        # Import data into the REDCap project: Alerts setup
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+                          for rec_id, participant in to_import_df.iterrows()]
+
         response = redcap_project.import_records(to_import_dict)
         print("[COMPLETED PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
 
@@ -1247,9 +1273,7 @@ def set_mrv2_alerts(redcap_project, redcap_project_df, mrv2_alert, mrv2_alert_st
 
     records_to_flag = []
     records_to_flag = get_record_ids_end_15m(redcap_project_df, days_before, mrv2_age=15, about_to_turn=14)
-
     # Remove those ids that must be ignored
-
     if blocked_records is not None:
         records_to_flag = records_to_flag.difference(blocked_records)
     # Get the project records ids of the participants with an active alert
