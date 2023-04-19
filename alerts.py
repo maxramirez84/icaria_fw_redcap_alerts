@@ -927,7 +927,6 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
                           for rec_id, participant in to_import_df.iterrows()]
 
         real_unreachable = records_unreachable.difference(records_completed)
-        print(records_unreachable.difference(real_unreachable))
         response = redcap_project.import_records(to_import_dict)
 
         print("[UNREACHABLE PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
@@ -1000,7 +999,7 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, blocked_records, 
 
             to_import_list.append({'record_id': id, 'child_fu_status': status})
     response = redcap_project.import_records(to_import_list)
-    print("[BIRTH WEIGHT] Alerts setup: {}\n".format(response.get('count')))
+    print("[BIRTH WEIGHT] Alerts setup: {}".format(response.get('count')))
 
 
 # MORTALITY SURVEILLANCE

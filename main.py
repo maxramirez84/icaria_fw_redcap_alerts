@@ -32,7 +32,7 @@ if __name__ == '__main__':
         project = redcap.Project(params.URL, params.TRIAL_PROJECTS[project_key])
 
         # Get all records for each ICARIA REDCap project (TRIAL)
-        print("[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
+        print("\n[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
@@ -168,6 +168,17 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
                 months=params.MRV2_MONTHS
             )
+        # Birth's weights not collected Alert
+        if params.BW_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            alerts.set_bw_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                bw_alert=params.BW_ALERT,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+            )
 
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
@@ -206,24 +217,12 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
 
-        # Birth's weights not collected Alert
-        if params.BW_ALERT in params.TRIAL_DEFINED_ALERTS:
-            # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
-            alerts.set_bw_alerts(
-                redcap_project=project,
-                redcap_project_df=df,
-                bw_alert=params.BW_ALERT,
-                blocked_records=custom_status_ids,
-                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
-            )
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
-        break
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
-        print("[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
+        print("\n[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         fields = project.export_field_names()
         field_names = [field['export_field_name'] for field in fields]
