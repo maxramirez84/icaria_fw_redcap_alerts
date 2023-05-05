@@ -617,9 +617,10 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_eve
     custom_status = active_alerts
     for alert in defined_alerts:
         custom_status = custom_status[~active_alerts.str.startswith(alert)]
+    custom_status = custom_status[custom_status!=' ']
 
+    print(custom_status[custom_status==' '])
     custom_status.index = custom_status.index.get_level_values('record_id')
-
     return custom_status.keys()
 
 
@@ -1485,7 +1486,6 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
         max_age = cohort_list_df[cohort_list_df['HF'] == big_project_key]['max_age'].unique()[0]
         nletter = cohort_list_df[cohort_list_df['HF'] == big_project_key]['target_letter'].unique()[0]
         letters_to_be_contacted = get_record_ids_nc_cohort(redcap_project_df, max_age, min_age)
-
         # Determine if we have already recruited the number of cohort participants needed for this HF-month
         need_to_stop = cohort_stopping_sistem(redcap_project_df, nletter,project_key)
         if need_to_stop == False:
@@ -1497,7 +1497,6 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
         # Remove those ids that must be ignored
         if blocked_records is not None:
             records_to_flag = records_to_be_contacted_index.difference(blocked_records)
-
         # Get the project records ids of the participants with an active alert
         records_with_alerts = get_active_alerts(redcap_project_df, cohort_alert, fu_status_event)
         # Check which of the records with alerts are not anymore in the records to flag (i.e. participants who were
