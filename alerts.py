@@ -619,7 +619,7 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_eve
         custom_status = custom_status[~active_alerts.str.startswith(alert)]
     custom_status = custom_status[custom_status!=' ']
 
-    print(custom_status[custom_status==' '])
+    #print(custom_status[custom_status==' '])
     custom_status.index = custom_status.index.get_level_values('record_id')
     return custom_status.keys()
 
@@ -1346,13 +1346,13 @@ def cohort_stopping_sistem(redcap_project, nletter,projectkey):
                 el = nletter
             sum_ += el
         nletter_comp = nletter + (nletter * 6 - sum_)
-        # print(nletter_comp)
+        #print(nletter_comp)
+        #print(sum(list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'] >= nletter_comp)))
         if sum(list(cohorts_from_this_months.groupby('int_random_letter').count()['record_id'] >= nletter_comp)) >= 4:
             print("It has been recruited the minimum participants per letter + compensation (" + str(
                 nletter) + ") in, at least, 4 letters, and the alert for this HF needs to stop.")
             STOP = True
     return STOP
-
 
 def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
     """
@@ -1368,9 +1368,11 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
     ## 1 CRITERIA: Having received at least 4 doses of SP
     x = redcap_data
     xres = x.reset_index()
-    sp_doses = x.groupby('record_id')['int_sp'].count()
-    record_id_only_4_doses = x.groupby('record_id').count()[sp_doses == 4].index
-    record_id_4_doses = x.groupby('record_id').count()[sp_doses > 4].index
+
+    sp_doses = xres[xres['int_sp']==float(1)]
+    sp_doses = xres[xres['int_sp']==float(1)].groupby('record_id')['int_sp'].count()
+    record_id_only_4_doses = xres[xres['int_sp']==float(1)].groupby('record_id').count()[sp_doses == 4].index
+    record_id_4_doses = xres[xres['int_sp']==float(1)].groupby('record_id').count()[sp_doses > 4].index
 
     ## 2 CRITERIA: >2 weeks from 3rd dosis of of SP
     # AIXÒ S'HA DE MIRAR BÉ, LO DE L'SP < 14 DIES. PERQUÈ LES XIFRES VAN VARIANT MOLT.
