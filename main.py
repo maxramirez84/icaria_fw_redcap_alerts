@@ -26,7 +26,22 @@ __status__ = "Dev"
 
 if __name__ == '__main__':
     # Alerts system @ ICARIA TRIAL REDCap projects
-
+    """
+    ## THIS WORKS TO ELIMINATE THE SCREENING FAILURE PARTICIPANTS
+    for project_key in params.TRIAL_PROJECTS:
+        ######
+        project = redcap.Project(params.URL, params.TRIAL_PROJECTS[project_key])
+        # Get all records for each ICARIA REDCap project (TRIAL)
+        print("\n[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
+        print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
+        df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+        dfres = df.reset_index()
+        dfres = dfres[(dfres['redcap_event_name']=='epipenta1_v0_recru_arm_1')&(dfres['study_number'].isna())]
+        dfres = dfres.set_index('record_id')[['child_fu_status']].drop_duplicates()
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status':'Screening Failure'}
+                          for rec_id in dfres.index]
+        response = project.import_records(to_import_dict)
+   """
     for project_key in params.TRIAL_PROJECTS:
         ######
         project = redcap.Project(params.URL, params.TRIAL_PROJECTS[project_key])
@@ -37,7 +52,6 @@ if __name__ == '__main__':
         df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
         # Custom status
-
 
         custom_status_ids = alerts.get_record_ids_with_custom_status(
             redcap_data=df,
@@ -185,6 +199,7 @@ if __name__ == '__main__':
             # Update REDCap data as it has may been modified by previous alerts
             df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
+
             alerts.set_end_fu_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
@@ -199,8 +214,6 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
                 months=params.END_FU_TRIAL
             )
-
-
 
         # ICARIA NON-CONTEMPORARY COHORT
         if params.NON_CONT_COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
@@ -220,6 +233,7 @@ if __name__ == '__main__':
 
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
+        break
         project = redcap.Project(params.URL, params.COHORT_PROJECTS[project_key])
         # Get all records for each ICARIA REDCap project (COHORT)
         print("\n[{}] Getting records from the ICARIA COHORT REDCap projects:".format(datetime.now()))

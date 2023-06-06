@@ -120,3 +120,6 @@ ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_stat
                       'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter', 'death_reported_date',
                       'hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date',
                       'phone_child_status']
+
+subprojects = {'HF01':['HF01.01','HF01.02'],'HF02':['HF02.01','HF02.02'],'HF08':['HF08.01','HF08.02','HF08.03'],
+               'HF12':['HF12.01','HF12.02'],'HF16':['HF16.01','HF16.02','HF16.03']}
