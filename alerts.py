@@ -1469,8 +1469,6 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
             dob_df.loc[record_id]['dob_diff']= res_months
         except:
             print(record_id, dobs[dob_count])
-
-            pass
         dob_count += 1
     #print(dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)])
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
