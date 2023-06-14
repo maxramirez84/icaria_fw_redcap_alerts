@@ -1468,7 +1468,10 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
             #print(record_id,start_date,end_date,delta,res_months,delta.months,delta.days)
             dob_df.loc[record_id]['dob_diff']= res_months
         except:
-            print(record_id, dobs[dob_count])
+            try:
+                print(record_id, dobs[dob_count])
+            except:
+                print(record_id)
         dob_count += 1
     #print(dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)])
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
@@ -1530,14 +1533,14 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
         if records_with_alerts is not None:
             alerts_to_be_removed = records_with_alerts.difference(records_to_flag)
             # Import data into the REDCap project: Alerts removal
-            REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
-            to_import_dict = [{'record_id': rec_id, 'child_fu_status':
-                str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(cohort_alert_string)[-1]} for rec_id in alerts_to_be_removed]
-            response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+#            REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
+#            to_import_dict = [{'record_id': rec_id, 'child_fu_status':
+#                str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(cohort_alert_string)[-1]} for rec_id in alerts_to_be_removed]
+#              response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
 
-            print("[ICARIA COHORT] Alerts removal: {}".format(response.get('count')))
-        else:
-            print("[ICARIA COHORT] Alerts removal: None")
+#            print("[ICARIA COHORT] Alerts removal: {}".format(response.get('count')))
+#        else:
+#            print("[ICARIA COHORT] Alerts removal: None")
 
         to_import_removed_cohorts = remove_labels_cohorts(redcap_project_df)
         # Import data into the REDCap project: Alerts setup
@@ -1547,16 +1550,21 @@ def set_nc_cohort_alerts(project_key, redcap_project, redcap_project_df, cohort_
         print("[ICARIA COHORT PARTICIPANTS] Removal: {}".format(response.get('count')))
 
         # Build dataframe with fields to be imported into REDCap (record_id and child_fu_status)
-        to_import_df = build_cohort_alerts_df(
-            record_ids=records_to_flag,
-            alert_string=cohort_alert_string,
-            redcap_project=redcap_project
-        )
+#        to_import_df = build_cohort_alerts_df(
+#            record_ids=records_to_flag,
+#            alert_string=cohort_alert_string,
+#            redcap_project=redcap_project
+#        )
         # Import data into the REDCap project: Alerts setup
-        to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
-                          for rec_id, participant in to_import_df.iterrows()]
-        response = redcap_project.import_records(to_import_dict)
-        print("[ICARIA COHORT] Alerts setup: {}".format(response.get('count')))
+#        to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
+#                          for rec_id, participant in to_import_df.iterrows()]
+##        to_import_dict = [{'record_id': rec_id, 'child_fu_status':
+##            str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(cohort_alert_string)[-1]} for rec_id,participant in
+##                          to_import_df.iterrows()]
+
+#        response = redcap_project.import_records(to_import_dict)
+
+#        print("[ICARIA COHORT] Alerts setup: {}".format(response.get('count')))
 
         to_import_actual_cohorts = set_label_cohorts(redcap_project)
         to_import_actual_cohorts = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
