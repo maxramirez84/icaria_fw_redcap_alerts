@@ -611,13 +611,17 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_eve
     :rtype: pandas.Int64Index
     """
     active_alerts = redcap_data.loc[(slice(None), fu_status_event), 'child_fu_status']
+    #active_alerts = active_alerts.replace(" ","").replace
     active_alerts = active_alerts[active_alerts.notnull()]
     if active_alerts.empty:
         return None
     custom_status = active_alerts
     for alert in defined_alerts:
         custom_status = custom_status[~active_alerts.str.startswith(alert)]
-    custom_status = custom_status[custom_status!=' ']
+
+    print(custom_status)
+    custom_status = custom_status[(custom_status!=' ')&(custom_status!='  ')&(custom_status!='   ')]
+    print(custom_status)
 
     #print(custom_status[custom_status==' '])
     custom_status.index = custom_status.index.get_level_values('record_id')
@@ -884,9 +888,13 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
     if study == "COHORT":
         # Ge        # Get the project records ids of the participants who are turning 18 months in days_before days from todayt the project records ids of the participants who are turning 15 months in days_before days from today
         records_to_flag = get_record_ids_end_cohort_fu(redcap_project_df, days_before)
+
+    print(records_to_flag)
+    print(blocked_records)
     # Remove those ids that must be ignored
     if blocked_records is not None:
         records_to_flag = records_to_flag.difference(blocked_records)
+    print(records_to_flag)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, end_fu_alert, fu_status_event)
