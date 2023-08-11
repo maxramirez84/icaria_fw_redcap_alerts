@@ -619,9 +619,9 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_eve
     for alert in defined_alerts:
         custom_status = custom_status[~active_alerts.str.startswith(alert)]
 
-    print(custom_status)
+    #print(custom_status)
     custom_status = custom_status[(custom_status!=' ')&(custom_status!='  ')&(custom_status!='   ')]
-    print(custom_status)
+    #print(custom_status)
 
     #print(custom_status[custom_status==' '])
     custom_status.index = custom_status.index.get_level_values('record_id')
