@@ -26,6 +26,8 @@ TRIAL_ALL_EVENT_NAMES = {
     'epipenta2_v1_iptis_arm_1': 'PENTA2',
     'epipenta3_v2_iptis_arm_1': 'PENTA3',
     'epivita_v3_iptisp3_arm_1': 'VITA-6M',
+    'epirtss_m7_visit_arm_1': 'RTSS-7M',
+    'epirtss_m8_visit_arm_1': 'RTSS-8M',
     'epimvr1_v4_iptisp4_arm_1': 'MRV1',
     'epivita_v5_iptisp5_arm_1': 'VITA-12M',
     'epimvr2_v6_iptisp6_arm_1': 'MRV2',
@@ -82,7 +84,8 @@ MS_EXCLUDED_EPI_VISITS = ['epipenta1_v0_recru_arm_1', 'epipenta2_v1_iptis_arm_1'
 
 
 # NEW MORTALITY SURVEILLANCE
-NEW_DAYS_AFTER_EPI = 90  # Defined by PI as 1 month (after any EPI visit since Penta3 - included)
+#NEW_DAYS_AFTER_EPI = 92  # Defined by PI as 3 month (after any EPI visit since Penta3 - included)
+NEW_DAYS_AFTER_EPI = 46  # Defined by PI to reduce the MS threshold to 1.5 month on 28/04/2024
 NEW_MS_ALERT = "SURVEILLANCE AFTER"
 NEW_MS_ALERT_STRING = MS_ALERT + " {last_epi_visit}"
 NEW_MS_EXCLUDED_EPI_VISITS = []  # Defined by In-country Tech. Coord.
@@ -112,14 +115,12 @@ TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALE
 COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
 # DATA DICTIONARY FIELDS USED BY THE DIFFERENT ALERTS - IMPROVE PERFORMANCE OF API CALLS
-ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_status', 'community', 'int_azi',
-                      'int_next_visit', 'int_date', 'int_sp', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen',
-                      'hh_date','study_number', 'call_caretaker','reachable_status',
-                      'household_follow_up_complete', 'a1m_date', 'comp_date','phone_success','child_weight_birth',
-                      'child_birth_weight_known','phone_success','fu_type','hh_drug_react','hh_health_complaint',
-                      'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter', 'death_reported_date',
-                      'hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date',
-                      'phone_child_status']
+ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'community', 'int_azi','int_next_visit', 'int_date',
+                      'int_sp', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen','hh_date','study_number',
+                      'call_caretaker','reachable_status','household_follow_up_complete', 'a1m_date', 'comp_date',
+                      'phone_success','child_birth_weight_known','phone_success','fu_type','int_random_letter',
+                      'death_reported_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date',
+                      'ch_his_date','phone_child_status','child_fu_status']
 
 subprojects = {'HF01':['HF01.01','HF01.02'],'HF02':['HF02.01','HF02.02'],'HF08':['HF08.01','HF08.02','HF08.03'],
                'HF12':['HF12.01','HF12.02'],'HF16':['HF16.01','HF16.02','HF16.03','HF16.04']}

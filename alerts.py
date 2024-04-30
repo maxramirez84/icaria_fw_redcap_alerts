@@ -52,6 +52,7 @@ def get_record_ids_tbv(redcap_data):
     epi1_recordid = redcap_data.loc[(slice(None), 'epipenta1_v0_recru_arm_1'), :].index.get_level_values('record_id')
     hh1_recordid = redcap_data.loc[(slice(None), 'hhafter_1st_dose_o_arm_1'), :].index.get_level_values('record_id')
     #    print(hh1_recordid)
+
     HH_not_done_yet = epi1_recordid.difference(hh1_recordid)
 
     #### NEW VERSION OF THE TBV ALERT. ANDREU BOFILL 03/02/2022
@@ -611,6 +612,11 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_eve
     :rtype: pandas.Int64Index
     """
     active_alerts = redcap_data.loc[(slice(None), fu_status_event), 'child_fu_status']
+    for k,alert in active_alerts.T.items():
+        #if " " in alert:
+        #    print (k,alert)
+        if alert == " " or alert == "  " or alert == "   " or alert == "    ":
+            print(k,alert)
     #active_alerts = active_alerts.replace(" ","").replace
     active_alerts = active_alerts[active_alerts.notnull()]
     if active_alerts.empty:
@@ -889,12 +895,12 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
         # Ge        # Get the project records ids of the participants who are turning 18 months in days_before days from todayt the project records ids of the participants who are turning 15 months in days_before days from today
         records_to_flag = get_record_ids_end_cohort_fu(redcap_project_df, days_before)
 
-    print(records_to_flag)
-    print(blocked_records)
+    #print(records_to_flag)
+    #print(blocked_records)
     # Remove those ids that must be ignored
     if blocked_records is not None:
         records_to_flag = records_to_flag.difference(blocked_records)
-    print(records_to_flag)
+    #print(records_to_flag)
 
     # Get the project records ids of the participants with an active alert
     records_with_alerts = get_active_alerts(redcap_project_df, end_fu_alert, fu_status_event)
@@ -1192,6 +1198,7 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
         "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
         "household_follow_up_complete == 2"
     )
+
     to_be_surveyed = days_since_last_epi_visit[days_since_last_epi_visit > timedelta(days=days_after_epi)].keys()
     if completed_fu is not None:
         record_ids_completed_fu = completed_fu.index.get_level_values('record_id')
@@ -1329,7 +1336,6 @@ def cohort_stopping_sistem(redcap_project,nletter,projectkey,date_='2023-06'):
     if "." in str(projectkey):
         cohorts_from_this_months = pd.DataFrame()
         for el in params.subprojects[str(projectkey).split(".")[0]]:
-            print(el)
             project = redcap.Project(params.URL, params.TRIAL_PROJECTS[el])
             df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
             xres = df.reset_index()
@@ -1347,7 +1353,7 @@ def cohort_stopping_sistem(redcap_project,nletter,projectkey,date_='2023-06'):
                     cohorts_from_this_months = cohorts_from_this_months_subproj
                 else:
                     cohorts_from_this_months = pd.concat([cohorts_from_this_months,cohorts_from_this_months_subproj])
-                print(cohorts_from_this_months)
+                #print(cohorts_from_this_months)
 
         if cohorts_from_this_months.empty:
             return STOP
@@ -1459,7 +1465,7 @@ def get_record_ids_nc_cohort(redcap_data, max_age, min_age):
 def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
     xre = redcap_data.reset_index()
     #end_date = datetime.strptime(date_, "%Y-%m-%d").date()
-    end_date = datetime.strptime("2023-0"+str(date.today().month)+"-01", "%Y-%m-%d").date()
+    end_date = datetime.strptime("2023-"+str(date.today().month)+"-01", "%Y-%m-%d").date()
     dob_count = 0
 
     dobs = list(xre[xre['redcap_event_name'] == 'epipenta1_v0_recru_arm_1']['child_dob'])
@@ -1476,10 +1482,11 @@ def get_record_ids_range_age(redcap_data,min_age,max_age,date_='2023-03-01'):
             #print(record_id,start_date,end_date,delta,res_months,delta.months,delta.days)
             dob_df.loc[record_id]['dob_diff']= res_months
         except:
-            try:
-                print(record_id, dobs[dob_count])
-            except:
-                print(record_id)
+            pass
+            #try:
+            #    print(record_id, dobs[dob_count])
+            #except:
+            #    print(record_id)
         dob_count += 1
     #print(dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)])
     return dob_df[(dob_df['dob_diff']<= max_age) & (dob_df['dob_diff'] >= min_age)].index
