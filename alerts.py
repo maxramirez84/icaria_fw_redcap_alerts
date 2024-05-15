@@ -1174,7 +1174,7 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     x['hh_date'] = pandas.to_datetime(x['hh_date'])
     x['ae_date'] = pandas.to_datetime(x['ae_date'])
     x['sae_awareness_date'] = pandas.to_datetime(x['sae_awareness_date'])
-    x['ms_date'] = pandas.to_datetime(x['ms_date'])
+    x['ms_date_contact'] = pandas.to_datetime(x['ms_date_contact'])
     x['unsch_date'] = pandas.to_datetime(x['unsch_date'])
     x['mig_date'] = pandas.to_datetime(x['mig_date'])
     x['comp_date'] = pandas.to_datetime(x['comp_date'])
@@ -1183,7 +1183,7 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     x = x.query("redcap_event_name not in @excluded_epi_visits")
 
     dates_df = x.groupby('record_id')[
-        ['int_date', 'a1m_date', 'hh_date', 'ae_date', 'sae_awareness_date', 'ms_date', 'unsch_date', 'mig_date',
+        ['int_date', 'a1m_date', 'hh_date', 'ae_date', 'sae_awareness_date', 'ms_date_contact', 'unsch_date', 'mig_date',
          'comp_date', 'ch_his_date']].max().reset_index().set_index('record_id')
     last_visit_dates = dates_df.apply(pd.to_datetime).max(axis=1)
     #    last_visit_dates = x.groupby('record_id')['int_date'].max()
@@ -1232,7 +1232,7 @@ def build_new_ms_alerts_df(redcap_data, record_ids, alert_string, event_names, l
     for k, el in last_visit_dates.T.items():
         if k in record_ids:
             last_visit = redcap_data.loc[k][
-                ['int_date', 'a1m_date', 'hh_date', 'ae_date', 'sae_awareness_date', 'ms_date', 'unsch_date',
+                ['int_date', 'a1m_date', 'hh_date', 'ae_date', 'sae_awareness_date', 'ms_date_contact', 'unsch_date',
                  'mig_date', 'comp_date', 'ch_his_date']]
             last_visit = last_visit[last_visit.eq(el)]
             last_visit = last_visit[last_visit.notnull()]

@@ -118,8 +118,8 @@ COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'community', 'int_azi','int_next_visit', 'int_date',
                       'int_sp', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen','hh_date','study_number',
                       'call_caretaker','reachable_status','household_follow_up_complete', 'a1m_date', 'comp_date',
-                      'phone_success','child_birth_weight_known','phone_success','fu_type','int_random_letter',
-                      'death_reported_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date',
+                      'phone_success','child_birth_weight_known','phowne_success','fu_type','int_random_letter',
+                      'death_reported_date', 'ae_date','sae_awareness_date','ms_date_contact','unsch_date','mig_date','comp_date',
                       'ch_his_date','phone_child_status','child_fu_status']
 
 subprojects = {'HF01':['HF01.01','HF01.02'],'HF02':['HF02.01','HF02.02'],'HF08':['HF08.01','HF08.02','HF08.03'],
