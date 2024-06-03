@@ -598,7 +598,7 @@ w
     return active_alerts.keys()
 
 
-def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_event):
+def get_record_ids_with_custom_status(redcap_data,redcap_project, defined_alerts, fu_status_event):
     """Get the project records ids of the participants with an custom status set up in the child_fu_status field.
 
     :param redcap_data: Exported REDCap project data
@@ -612,27 +612,71 @@ def get_record_ids_with_custom_status(redcap_data, defined_alerts, fu_status_eve
     :rtype: pandas.Int64Index
     """
     active_alerts = redcap_data.loc[(slice(None), fu_status_event), 'child_fu_status']
+
+
+    #    active_alerts = active_alerts.replace("     ","").replace("    ","").replace("   ","").replace("  ","").replace(" ","")
+
     for k,alert in active_alerts.T.items():
-        #if " " in alert:
-        #    print (k,alert)
         if alert == " " or alert == "  " or alert == "   " or alert == "    ":
-            print(k,alert)
-    #active_alerts = active_alerts.replace(" ","").replace
+            print(k[0],"(",alert,"(")
     active_alerts = active_alerts[active_alerts.notnull()]
+
     if active_alerts.empty:
         return None
     custom_status = active_alerts
     for alert in defined_alerts:
         custom_status = custom_status[~active_alerts.str.startswith(alert)]
 
-    #print(custom_status)
-    custom_status = custom_status[(custom_status!=' ')&(custom_status!='  ')&(custom_status!='   ')]
-    #print(custom_status)
-
-    #print(custom_status[custom_status==' '])
+    empty_status_to_correct = custom_status[(custom_status==' ')|(custom_status=='  ')|(custom_status=='   ')|(custom_status=='    ')|(custom_status=='     ')|(custom_status=='      ')|(custom_status=='       ')]
+    custom_status = custom_status[(custom_status!=' ')&(custom_status!='  ')&(custom_status!='   ')&(custom_status!='    ')&(custom_status!='     ')&(custom_status!='      ')]
     custom_status.index = custom_status.index.get_level_values('record_id')
+
+    if not empty_status_to_correct.empty:
+        print(empty_status_to_correct)
+        records_empty_to_correct = empty_status_to_correct.index.get_level_values('record_id')
+        to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in records_empty_to_correct]
+        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        print("[BLANK STATUS] Alerts REMOVED: {}".format(response.get('count')))
     return custom_status.keys()
 
+
+def remove_status_AV(redcap_data,redcap_project, defined_alerts, fu_status_event,AV=True):
+    """
+    This was used to remove the AV or BW old alarm, without (). 20240603
+    Now it should be solved.
+
+    :param redcap_data:
+    :param redcap_project:
+    :param defined_alerts:
+    :param fu_status_event:
+    :param AV:
+    :return:
+    """
+    """
+    :param redcap_data: 
+    :param redcap_project: 
+    :param defined_alerts: 
+    :param fu_status_event: 
+    :param AV: 
+    :return: 
+    """
+    active_alerts = redcap_data.loc[(slice(None), fu_status_event), 'child_fu_status']
+    active_alerts = active_alerts.replace(np.nan,'')
+    if AV:
+        good_AV =active_alerts[active_alerts.str.contains('\(AV\)')]
+        bad_AV = active_alerts[active_alerts.str.contains('AV')]
+    else:
+        good_AV =active_alerts[active_alerts.str.contains('\(BW\)')]
+        bad_AV = active_alerts[active_alerts.str.contains('BW')]
+
+    print(good_AV)
+    print(bad_AV)
+    bad_records = bad_AV.index.get_level_values('record_id').difference(good_AV.index.get_level_values('record_id'))
+    print(bad_records)
+
+    to_import_dict = [{'record_id': rec_id, 'child_fu_status': ''} for rec_id in bad_records]
+    response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+    print("[OLD VA/BW] Alerts REMOVED: {}".format(response.get('count')))
 
 # TO BE VISITED
 def set_tbv_alerts(redcap_project, redcap_project_df, tbv_alert, tbv_alert_string, redcap_date_format,
@@ -959,6 +1003,111 @@ def set_end_fu_alerts(redcap_project, redcap_project_df, end_fu_alert, end_fu_al
         print("[COMPLETED PARTICIPANTS] Alerts setup: {}".format(response.get('count')))
 
 
+
+def days_between(d1, d2):
+    d1 = datetime.strptime(d1, "%Y-%m-%d")
+    d2 = datetime.strptime(d2, "%Y-%m-%d")
+    return abs((d2 - d1).days)
+
+def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event):
+    """
+    To alert of those participants without information about Birth Weight
+
+    :param redcap_project: A REDCap project class to communicate with the REDCap API
+    :type redcap_project: redcap.Project
+    :param redcap_project_df: Data frame containing all data exported from the REDCap project
+    :type redcap_project_df: pandas.DataFrame
+    :param av_alert: Code of the Birth Weight alert.
+    :type av_alert: str
+    :param blocked_records: Array with the record ids that will be ignored during the alerts setup
+    :type blocked_records: pandas.Int64Index
+    :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
+    :type fu_status_event: str
+    :return: None
+    """
+    av_alert2 = av_alert + "_S"
+    REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
+    V4_REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epimvr1_v4_iptisp4_arm_1'")
+    V5_REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epivita_v5_iptisp5_arm_1'")
+    if not V4_REDCAP_QUERY.empty:
+        AV_REDCAP_V4 = V4_REDCAP_QUERY[(V4_REDCAP_QUERY['azivac_study_number']!='')&(~V4_REDCAP_QUERY['azivac_date'].isnull())]
+        AV_REDCAP_V5 = V5_REDCAP_QUERY[(V5_REDCAP_QUERY['azivac_study_number']!='')&(~V5_REDCAP_QUERY['azivac_date'].isnull())]
+        AVRES5 = AV_REDCAP_V5.reset_index()
+
+        if not AV_REDCAP_V4.empty:
+            AV_REDCAP_V4[['azivac_date']] = AV_REDCAP_V4[['azivac_date']].apply(pd.to_datetime)
+
+        # Get only those participants with AziVac collection done between 1M and 4M ago
+        #AV_REDCAP_V4 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=120)]
+
+            AV_REDCAP_AL1 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=92)]
+            AV_REDCAP_AL2 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 92)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=122)]
+
+        ## ALARM 1
+            set_azivac_part2(redcap_project, redcap_project_df, av_alert,blocked_records, fu_status_event, AV_REDCAP_AL1,AVRES5)
+
+     #       set_azivac_part2(redcap_project, redcap_project_df, av_alert2,blocked_records, fu_status_event, AV_REDCAP_AL2,AVRES5)
+        else:
+            print("[AZIVAC] Alerts removal: None")
+            print("[AZIVAC] Alerts setup: None")
+
+    else:
+        print("[AZIVAC] Alerts removal: None")
+        print("[AZIVAC] Alerts setup: None")
+
+def set_azivac_part2(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event,AV_REDCAP_AL1,AVRES5):
+    REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
+
+    records_av_al1 = AV_REDCAP_AL1.index.get_level_values(0)
+   # Remove those ids with already endline collected
+    if list(AVRES5['record_id']) is not None:
+        records_av_al1 = records_av_al1.difference(list(AVRES5['record_id']))
+
+    # Remove those ids that must be ignored
+
+    """ EL PROBLEMA ESTÀ AQUI, QUE RECONEIX ELS STATUS AMB ESPAIS "    " COM A BLOCKED RECORDS I PER TANT ES BLOQUEJA. 
+    
+    hE DE CORREGIR LA MANERA COM, PERQUE QUAN GUARDA L' AV, EL GUARDA AMB ESPAIS """
+
+    if blocked_records is not None:
+        records_av_al1 = records_av_al1.difference(blocked_records)
+
+    records_with_alerts_al1 = get_active_alerts(redcap_project_df, av_alert, fu_status_event, type_='BW')
+    #print(blocked_records)
+
+    if records_with_alerts_al1 is not None:
+        alerts_to_be_removed_al1 = records_with_alerts_al1.difference(records_av_al1)
+        # Import data into the REDCap project: Alerts removal
+        to_import_dict = [
+            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split("(AV)")[0]} for
+            rec_id in alerts_to_be_removed_al1]
+        response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
+        print("[AZIVAC] Alerts removal: {}".format(response.get('count')))
+    else:
+        print("[AZIVAC] Alerts removal: None")
+
+
+    RC_query_res = REDCAP_QUERY.reset_index()
+    df_to_set_alarm_al1 = RC_query_res[RC_query_res['record_id'].isin(records_av_al1)][['record_id','child_fu_status']]
+    #print(df_to_set_alarm_al1)
+    to_import_list = []
+    for k, el in df_to_set_alarm_al1.T.items():
+        if el.record_id in records_av_al1:
+            id = el.record_id
+            if str(el.child_fu_status) == 'nan':
+                status = "(AV)"
+            else:
+                if "COMPLETED" in str(el.child_fu_status):
+                    status = str(el.child_fu_status).split("(AV)")[0]
+                else:
+                    status = str(el.child_fu_status).split("(AV)")[0] + "(AV)"
+            to_import_list.append({'record_id': id, 'child_fu_status': status})
+
+
+    response = redcap_project.import_records(to_import_list)
+    print("[AZIVAC] Alerts setup: {}".format(response.get('count')))
+
+
 def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, blocked_records, fu_status_event):
     """
     To alert of those participants without information about Birth Weight
@@ -972,7 +1121,7 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, blocked_records, 
     :param blocked_records: Array with the record ids that will be ignored during the alerts setup
     :type blocked_records: pandas.Int64Index
     :param fu_status_event: ID of the REDCap project event in which the follow up status variable is contained
-    :type fu_status_event: str
+    :type fu_status_event: st
     :return: None
     """
 
@@ -992,7 +1141,7 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, blocked_records, 
         alerts_to_be_removed = records_with_alerts.difference(records_bw)
         # Import data into the REDCap project: Alerts removal
         to_import_dict = [
-            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split("BW")[0]} for
+            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split("(BW)")[0]} for
             rec_id in alerts_to_be_removed]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
         print("[BIRTH WEIGHT] Alerts removal: {}".format(response.get('count')))
@@ -1005,12 +1154,12 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, blocked_records, 
         if el.record_id in records_bw:
             id = el.record_id
             if str(el.child_fu_status) == 'nan':
-                status = " BW"
+                status = "(BW)"
             else:
                 if "COMPLETED" in str(el.child_fu_status):
-                    status = str(el.child_fu_status).split("BW")[0]
+                    status = str(el.child_fu_status).split("(BW)")[0]
                 else:
-                    status = str(el.child_fu_status).split("BW")[0] + " BW"
+                    status = str(el.child_fu_status).split("(BW)")[0] + "(BW)"
 
             to_import_list.append({'record_id': id, 'child_fu_status': status})
     response = redcap_project.import_records(to_import_list)
@@ -1145,7 +1294,6 @@ def set_new_ms_alerts(redcap_project, redcap_project_df, ms_alert, ms_alert_stri
     # Import data into the REDCap project: Alerts setup
     to_import_dict = [{'record_id': rec_id, 'child_fu_status': participant.child_fu_status}
                       for rec_id, participant in to_import_df.iterrows()]
-
     response = redcap_project.import_records(to_import_dict)
     print("[MORTALITY-SURVEILLANCE] Alerts setup: {}".format(response.get('count')))
 

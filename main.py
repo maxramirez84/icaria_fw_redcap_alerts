@@ -51,10 +51,26 @@ if __name__ == '__main__':
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
+        """
+        alerts.remove_status_AV(
+            redcap_data=df,
+            redcap_project = project,
+            defined_alerts=params.TRIAL_DEFINED_ALERTS,
+            fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
+            AV=False
+        )
         # Custom status
-
+        alerts.remove_status_AV(
+            redcap_data=df,
+            redcap_project = project,
+            defined_alerts=params.TRIAL_DEFINED_ALERTS,
+            fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+        )
+        """
+        # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
             redcap_data=df,
+            redcap_project = project,
             defined_alerts=params.TRIAL_DEFINED_ALERTS,
             fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
         )
@@ -193,6 +209,17 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
+        # AziVac Alert
+        if params.AZIVAC_ALERT in params.TRIAL_DEFINED_ALERTS:
+            # Update REDCap data as it has may been modified by previous alerts
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            alerts.set_azivac_alerts(
+                redcap_project=project,
+                redcap_project_df=df,
+                av_alert=params.AZIVAC_ALERT,
+                blocked_records=custom_status_ids,
+                fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
+            )
 
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
@@ -219,6 +246,7 @@ if __name__ == '__main__':
         if params.NON_CONT_COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
             df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_nc_cohort_alerts(
                 project_key=project_key,
@@ -229,6 +257,10 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
+        """
+
+
+
         """
     # Alerts system @ ICARIA COHORT REDCap projects
     for project_key in params.COHORT_PROJECTS:
@@ -260,3 +292,4 @@ if __name__ == '__main__':
                 fu_status_event=params.COHORT_CHILD_FU_STATUS_EVENT,
                 months=params.END_FU_COHORT
             )
+"""

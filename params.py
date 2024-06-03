@@ -61,6 +61,20 @@ DAYS_AFTER_NV = DAYS_TO_NC  # Defined by In-Country Technical Coordinator
 NV_ALERT = "NEXT VISIT"
 NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 
+
+# AZIVAC ALERT
+DAYS_BEFORE_END_FU = 0  # Defined by In-Country Technical Coordinator
+AZIVAC_ALERT = "(AV)"
+AZIVAC_ALERT_SERIOUS = "(AV-S)"
+
+
+# NEXT VISIT ALERT
+DAYS_BEFORE_NV = 7  # Defined by In-Country Technical Coordinator
+DAYS_AFTER_NV = DAYS_TO_NC  # Defined by In-Country Technical Coordinator
+NV_ALERT = "NEXT VISIT"
+NV_ALERT_STRING = NV_ALERT + ": {return_date}"
+
+
 # END OF FOLLOW UP
 DAYS_BEFORE_END_FU = 0  # Defined by In-Country Technical Coordinator
 END_FU_ALERT = "END F/U"
@@ -103,14 +117,14 @@ NON_CONT_COHORT_ALERT_STRING = NON_CONT_COHORT_ALERT
 
 
 # BIRTHS WEIGHTS ALERT. If not collected
-BW_ALERT = "BW"
+BW_ALERT = "(BW)"
 BW_ALERT_STRING = BW_ALERT
 
 
 # ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 
 #NC_ALERT dismissed 20221027 abofill
-TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALERT,COMPLETION_STRING, BW_ALERT,NON_CONT_COHORT_ALERT,OTHER_COHORT_ALERT,FINALIZED_COHORT_STRING,UNREACHABLE_STRING]
+TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALERT,COMPLETION_STRING, BW_ALERT,NON_CONT_COHORT_ALERT,OTHER_COHORT_ALERT,FINALIZED_COHORT_STRING,UNREACHABLE_STRING,AZIVAC_ALERT,AZIVAC_ALERT_SERIOUS]
 
 COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
@@ -118,9 +132,9 @@ COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'community', 'int_azi','int_next_visit', 'int_date',
                       'int_sp', 'intervention_complete', 'hh_child_seen','hh_why_not_child_seen','hh_date','study_number',
                       'call_caretaker','reachable_status','household_follow_up_complete', 'a1m_date', 'comp_date',
-                      'phone_success','child_birth_weight_known','phowne_success','fu_type','int_random_letter',
+                      'phone_success','child_birth_weight_known','phone_success','fu_type','int_random_letter',
                       'death_reported_date', 'ae_date','sae_awareness_date','ms_date_contact','unsch_date','mig_date','comp_date',
-                      'ch_his_date','phone_child_status','child_fu_status']
+                      'ch_his_date','phone_child_status','child_fu_status','azivac_study_number','azivac_date']
 
 subprojects = {'HF01':['HF01.01','HF01.02'],'HF02':['HF02.01','HF02.02'],'HF08':['HF08.01','HF08.02','HF08.03'],
                'HF12':['HF12.01','HF12.02'],'HF16':['HF16.01','HF16.02','HF16.03','HF16.04']}
