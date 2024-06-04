@@ -874,7 +874,7 @@ def set_nv_alerts(redcap_project, redcap_project_df, nv_alert, nv_alert_string, 
     print("[NEXT VISIT] Alerts setup: {}".format(response.get('count')))
 
 
-def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert, fu_status_event):
+def remove_alerts(redcap_project, redcap_project_df, fu_status_event,alert='(BW)'):
     """Remove the Next Visit alerts of those participants who have this alert already setup.
 
     :param redcap_project: A REDCap project class to communicate with the REDCap API
@@ -889,8 +889,9 @@ def remove_nv_alerts(redcap_project, redcap_project_df, nv_alert, fu_status_even
     :return: None
     """
     # Get the project records ids of the participants with an active alert
-    records_with_alerts = get_active_alerts(redcap_project_df, nv_alert, fu_status_event)
-
+    records_with_alerts = get_active_alerts(redcap_project_df, alert, fu_status_event)
+    print(alert)
+    print(records_with_alerts)
     # Remove all NEXT VISIT alerts
     if records_with_alerts is not None:
         # Import data into the REDCap project: Alerts removal

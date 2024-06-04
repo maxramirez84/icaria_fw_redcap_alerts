@@ -26,6 +26,7 @@ __status__ = "Dev"
 
 if __name__ == '__main__':
     # Alerts system @ ICARIA TRIAL REDCap projects
+
     """
     ## THIS WORKS TO ELIMINATE THE SCREENING FAILURE PARTICIPANTS
     for project_key in params.TRIAL_PROJECTS:
@@ -198,6 +199,7 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT,
                 months=params.MRV2_MONTHS
             )
+        """
         # Birth's weights not collected Alert
         if params.BW_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
@@ -209,6 +211,7 @@ if __name__ == '__main__':
                 blocked_records=custom_status_ids,
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
+        """
         # AziVac Alert
         if params.AZIVAC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
