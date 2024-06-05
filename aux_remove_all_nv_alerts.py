@@ -10,4 +10,4 @@ for project_key in params.TRIAL_PROJECTS:
     print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
     df = project.export_records(format='df')
 
-    alerts.remove_nv_alerts(project, df, params.NV_ALERT, params.TRIAL_CHILD_FU_STATUS_EVENT)
+    alerts.remove_status(project, df, params.BW_ALERT, params.TRIAL_CHILD_FU_STATUS_EVENT)

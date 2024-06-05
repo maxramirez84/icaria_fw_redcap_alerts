@@ -2,6 +2,7 @@ import tokens
 from datetime import datetime
 
 currentMonth = datetime.now().month
+
 # REDCap parameters
 URL = tokens.URL
 TRIAL_PROJECTS = tokens.REDCAP_PROJECTS_ICARIA
@@ -42,7 +43,6 @@ TRIAL_ALL_EVENT_NAMES = {
     'out_of_schedule_arm_1': 'OUTSCH'
 }
 
-
 # Alerts general parameters
 ALERT_DATE_FORMAT = "%b %d"
 
@@ -51,6 +51,7 @@ TBV_ALERT = "TBV"
 TBV_ALERT_STRING = TBV_ALERT + "@{community} AZi/Pbo@{last_azi_date}"
 
 # NON-COMPLIANT ALERT
+""" DEACTIVATED """
 DAYS_TO_NC = 28  # Defined by PI as 4 weeks (after expected return date)
 NC_ALERT = "NC"
 NC_ALERT_STRING = NC_ALERT + "@{community} ({weeks} weeks)"
@@ -61,12 +62,9 @@ DAYS_AFTER_NV = DAYS_TO_NC  # Defined by In-Country Technical Coordinator
 NV_ALERT = "NEXT VISIT"
 NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 
-
 # AZIVAC ALERT
-DAYS_BEFORE_END_FU = 0  # Defined by In-Country Technical Coordinator
 AZIVAC_ALERT = "(AV)"
 AZIVAC_ALERT_SERIOUS = "(AV-S)"
-
 
 # NEXT VISIT ALERT
 DAYS_BEFORE_NV = 7  # Defined by In-Country Technical Coordinator
@@ -79,29 +77,17 @@ NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 DAYS_BEFORE_END_FU = 0  # Defined by In-Country Technical Coordinator
 END_FU_ALERT = "END F/U"
 END_FU_ALERT_STRING = END_FU_ALERT + " Pending: {birthday}"
-BORRAR_END_FU_ALERT_STRING = END_FU_ALERT + ": {birthday}"
-
-COHORT_MRV2_ALERT = "MRV2"
-COHORT_MRV2_ALERT_STRING = "MRV2 Pending: {birthday}"
 
 END_FU_TRIAL = 18   # By protocol
-END_FU_COHORT = 15  # By protocol
 COMPLETION_STRING = "COMPLETED. 18 months of age"
 UNREACHABLE_STRING = "UNREACHABLE. 18 months of age"
 UNREACHABLE_STR = "UNREACHABLE"
-
-# MORTALITY SURVEILLANCE
-DAYS_AFTER_EPI = 30  # Defined by PI as 1 month (after any EPI visit since Penta3 - included)
-MS_ALERT = "SURVEILLANCE AFTER"
-MS_ALERT_STRING = MS_ALERT + " {last_epi_visit}"
-MS_EXCLUDED_EPI_VISITS = ['epipenta1_v0_recru_arm_1', 'epipenta2_v1_iptis_arm_1']  # Defined by In-country Tech. Coord.
-
 
 # NEW MORTALITY SURVEILLANCE
 #NEW_DAYS_AFTER_EPI = 92  # Defined by PI as 3 month (after any EPI visit since Penta3 - included)
 NEW_DAYS_AFTER_EPI = 46  # Defined by PI to reduce the MS threshold to 1.5 month on 28/04/2024
 NEW_MS_ALERT = "SURVEILLANCE AFTER"
-NEW_MS_ALERT_STRING = MS_ALERT + " {last_epi_visit}"
+NEW_MS_ALERT_STRING = NEW_MS_ALERT + " {last_epi_visit}"
 NEW_MS_EXCLUDED_EPI_VISITS = []  # Defined by In-country Tech. Coord.
 
 # MRV2 ALERT. 15 MONTH OF AGE
@@ -110,6 +96,9 @@ MRV2_ALERT_STRING = MRV2_ALERT
 MRV2_MONTHS = 15
 DAYS_BEFORE_MRV2 = 0 # Defined by In-Country Technical Coordinator
 
+
+# COHORT ALERT.
+""" DEACTIVATED """
 FINALIZED_COHORT_STRING = "COH."
 OTHER_COHORT_ALERT = "COHORT Pending"
 NON_CONT_COHORT_ALERT = "(COHORT pending)"
@@ -125,7 +114,11 @@ BW_ALERT_STRING = BW_ALERT
 # ENABLED ALERTS: Subset of [TBV_ALERT, NV_ALERT, MS_ALERT, NC_ALERT, END_FU_ALERT]
 
 #NC_ALERT dismissed 20221027 abofill
-TRIAL_DEFINED_ALERTS = [TBV_ALERT, MS_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALERT,COMPLETION_STRING,NON_CONT_COHORT_ALERT,OTHER_COHORT_ALERT,FINALIZED_COHORT_STRING,UNREACHABLE_STRING,AZIVAC_ALERT,AZIVAC_ALERT_SERIOUS]
+TRIAL_DEFINED_ALERTS = [TBV_ALERT, END_FU_ALERT,NEW_MS_ALERT, MRV2_ALERT,COMPLETION_STRING,UNREACHABLE_STRING,AZIVAC_ALERT,AZIVAC_ALERT_SERIOUS]
+
+# NON-ICARIA COHORT PROJECT ALERT #
+COHORT_MRV2_ALERT = "MRV2"
+COHORT_MRV2_ALERT_STRING = "MRV2 Pending: {birthday}"
 
 COHORT_DEFINED_ALERTS = [COHORT_MRV2_ALERT]
 
