@@ -816,7 +816,7 @@ def get_record_ids_end_15m(redcap_data, days_before, mrv2_age=15, about_to_turn=
 
     finalized = x.query(
         "redcap_event_name == 'epimvr2_v6_iptisp6_arm_1' and "
-        "intervention_complete == 2"
+        "intervention_complete != ''"
     )
 
     about_15m_not_seen = about_15m.index
