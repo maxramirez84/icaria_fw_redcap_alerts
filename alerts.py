@@ -656,7 +656,20 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     # last_ms_contacts = x.groupby('record_id')['a1m_date'].max()
     # last_ms_contacts = last_ms_contacts[last_visit_dates.keys()]
     # already_contacted = last_ms_contacts > last_visit_dates
-    days_since_last_epi_visit = datetime.today() - last_visit_dates
+    last_visit_dates_dfres = last_visit_dates.reset_index().set_index('record_id')
+    last_visit_dates_dfres = last_visit_dates_dfres.rename(columns={0:"last_visit"})
+    last_visit_dates_dfres['last_visit'] = last_visit_dates_dfres['last_visit'].dt.strftime('%Y-%m-%d')
+    today = datetime.today().date()
+
+    datediff = []
+    for record_id,date_ in last_visit_dates_dfres.T.items():
+        last_visit = datetime.strptime(date_['last_visit'], "%Y-%m-%d").date()
+        #print(last_visit)
+        #print((today-last_visit).days)
+        datediff.append((today-last_visit).days)
+    last_visit_dates_dfres['datediff'] = datediff
+    #print(last_visit_dates_dfres)
+    days_since_last_epi_visit = last_visit_dates_dfres['datediff']
     # Remove those participants who have already completed the study follow up, so household visit at 18th month of age
     # has been carried out
     completed_fu = x.query(
@@ -664,7 +677,9 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
         "household_follow_up_complete == 2"
     )
 
-    to_be_surveyed = days_since_last_epi_visit[days_since_last_epi_visit > timedelta(days=days_after_epi)].keys()
+    to_be_surveyed = days_since_last_epi_visit[days_since_last_epi_visit > days_after_epi].keys()
+
+    #print (to_be_surveyed)
     if completed_fu is not None:
         record_ids_completed_fu = completed_fu.index.get_level_values('record_id')
         to_be_surveyed = to_be_surveyed.difference(record_ids_completed_fu)
