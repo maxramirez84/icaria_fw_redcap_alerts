@@ -1190,7 +1190,12 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
 
     # Remove those ids that must be ignored
     if blocked_records is not None:
+        print(blocked_records)
         records_av_al1 = records_av_al1.difference(blocked_records)
+
+    if params.azivac_blocked_records is not None:
+        print(params.azivac_blocked_records)
+        records_av_al1 = records_av_al1.difference(params.azivac_blocked_records)
 
     records_with_alerts_al1 = get_active_alerts(redcap_project_df, av_alert, fu_status_event, type_='BW')
     #print(blocked_records)

@@ -156,7 +156,7 @@ if __name__ == '__main__':
                 fu_status_event=params.TRIAL_CHILD_FU_STATUS_EVENT
             )
         """
-        
+
 # AZIVAC ALERT
         if params.AZIVAC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
