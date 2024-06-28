@@ -1155,6 +1155,9 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
     V4_REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epimvr1_v4_iptisp4_arm_1'")
     V5_REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epivita_v5_iptisp5_arm_1'")
+    V4_REDCAP_QUERY['azivac_study_number'] = V4_REDCAP_QUERY['azivac_study_number'].fillna('')
+    V5_REDCAP_QUERY['azivac_study_number'] = V5_REDCAP_QUERY['azivac_study_number'].fillna('')
+
     if not V4_REDCAP_QUERY.empty:
         AV_REDCAP_V4 = V4_REDCAP_QUERY[(V4_REDCAP_QUERY['azivac_study_number']!='')&(~V4_REDCAP_QUERY['azivac_date'].isnull())]
         AV_REDCAP_V5 = V5_REDCAP_QUERY[(V5_REDCAP_QUERY['azivac_study_number']!='')&(~V5_REDCAP_QUERY['azivac_date'].isnull())]
@@ -1163,15 +1166,15 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
         if not AV_REDCAP_V4.empty:
             AV_REDCAP_V4[['azivac_date']] = AV_REDCAP_V4[['azivac_date']].apply(pd.to_datetime)
 
-        # Get only those participants with AziVac collection done between 1M and 4M ago
-        #AV_REDCAP_V4 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=120)]
+            # Get only those participants with AziVac collection done between 1M and 4M ago
+            #AV_REDCAP_V4 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=120)]
 
             AV_REDCAP_AL1 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=92)]
             AV_REDCAP_AL2 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 92)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=122)]
 
-        ## ALARM 1
+            ## ALARM 1
             build_azivac(redcap_project, redcap_project_df, av_alert,blocked_records, fu_status_event, AV_REDCAP_AL1,AVRES5)
-     #       set_azivac_part2(redcap_project, redcap_project_df, av_alert2,blocked_records, fu_status_event, AV_REDCAP_AL2,AVRES5)
+        #       set_azivac_part2(redcap_project, redcap_project_df, av_alert2,blocked_records, fu_status_event, AV_REDCAP_AL2,AVRES5)
         else:
             print("[AZIVAC] Alerts removal: None")
             print("[AZIVAC] Alerts setup: None")
