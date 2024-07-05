@@ -637,19 +637,25 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     x['int_date'] = pandas.to_datetime(x['int_date'])
     x['a1m_date'] = pandas.to_datetime(x['a1m_date'])
     x['hh_date'] = pandas.to_datetime(x['hh_date'])
-    x['ae_date'] = pandas.to_datetime(x['ae_date'])
-    x['sae_awareness_date'] = pandas.to_datetime(x['sae_awareness_date'])
+    #x['ae_date'] = pandas.to_datetime(x['ae_date'])
+    #x['sae_awareness_date'] = pandas.to_datetime(x['sae_awareness_date'])
     x['ms_date_contact'] = pandas.to_datetime(x['ms_date_contact'])
     x['unsch_date'] = pandas.to_datetime(x['unsch_date'])
     x['mig_date'] = pandas.to_datetime(x['mig_date'])
     x['comp_date'] = pandas.to_datetime(x['comp_date'])
     x['ch_his_date'] = pandas.to_datetime(x['ch_his_date'])
+    x['sae_hosp_admin_date'] = pandas.to_datetime(x['sae_hosp_admin_date'])
+    x['sae_hosp_disch_date'] = pandas.to_datetime(x['sae_hosp_disch_date'])
+    x['rtss_vacc_rtss1_date'] = pandas.to_datetime(x['rtss_vacc_rtss1_date'])
+    x['rtss_vacc_rtss2_date'] = pandas.to_datetime(x['rtss_vacc_rtss2_date'])
+    x['rtss_vacc_rtss3_date'] = pandas.to_datetime(x['rtss_vacc_rtss3_date'])
+    x['rtss_vacc_rtss4_date'] = pandas.to_datetime(x['rtss_vacc_rtss4_date'])
 
     x = x.query("redcap_event_name not in @excluded_epi_visits")
 
     dates_df = x.groupby('record_id')[
-        ['int_date', 'a1m_date', 'hh_date', 'ae_date', 'sae_awareness_date', 'ms_date_contact', 'unsch_date', 'mig_date',
-         'comp_date', 'ch_his_date']].max().reset_index().set_index('record_id')
+        ['int_date', 'a1m_date', 'hh_date', 'ms_date_contact', 'unsch_date', 'mig_date', 'sae_hosp_admin_date','sae_hosp_disch_date',
+         'comp_date', 'ch_his_date','rtss_vacc_rtss1_date','rtss_vacc_rtss2_date','rtss_vacc_rtss3_date','rtss_vacc_rtss4_date']].max().reset_index().set_index('record_id')
     last_visit_dates = dates_df.apply(pd.to_datetime).max(axis=1)
     #    last_visit_dates = x.groupby('record_id')['int_date'].max()
     last_visit_dates = last_visit_dates[last_visit_dates.notnull()]
