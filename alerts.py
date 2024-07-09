@@ -645,7 +645,6 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     x['comp_date'] = pandas.to_datetime(x['comp_date'])
     x['ch_his_date'] = pandas.to_datetime(x['ch_his_date'])
     x['sae_hosp_admin_date'] = pandas.to_datetime(x['sae_hosp_admin_date'])
-    x['sae_hosp_disch_date'] = pandas.to_datetime(x['sae_hosp_disch_date'])
     x['rtss_vacc_rtss1_date'] = pandas.to_datetime(x['rtss_vacc_rtss1_date'])
     x['rtss_vacc_rtss2_date'] = pandas.to_datetime(x['rtss_vacc_rtss2_date'])
     x['rtss_vacc_rtss3_date'] = pandas.to_datetime(x['rtss_vacc_rtss3_date'])
@@ -654,7 +653,7 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     x = x.query("redcap_event_name not in @excluded_epi_visits")
 
     dates_df = x.groupby('record_id')[
-        ['int_date', 'a1m_date', 'hh_date', 'ms_date_contact', 'unsch_date', 'mig_date', 'sae_hosp_admin_date','sae_hosp_disch_date',
+        ['int_date', 'a1m_date', 'hh_date', 'ms_date_contact', 'unsch_date', 'mig_date', 'sae_hosp_admin_date',
          'comp_date', 'ch_his_date','rtss_vacc_rtss1_date','rtss_vacc_rtss2_date','rtss_vacc_rtss3_date','rtss_vacc_rtss4_date']].max().reset_index().set_index('record_id')
     last_visit_dates = dates_df.apply(pd.to_datetime).max(axis=1)
     #    last_visit_dates = x.groupby('record_id')['int_date'].max()
@@ -717,8 +716,9 @@ def build_new_ms_alerts_df(redcap_data, record_ids, alert_string, event_names, l
     for k, el in last_visit_dates.T.items():
         if k in record_ids:
             last_visit = redcap_data.loc[k][
-                ['int_date', 'a1m_date', 'hh_date', 'ae_date', 'sae_awareness_date', 'ms_date_contact', 'unsch_date',
-                 'mig_date', 'comp_date', 'ch_his_date']]
+                ['int_date', 'a1m_date', 'hh_date', 'sae_hosp_admin_date',
+                 'ms_date_contact', 'unsch_date', 'mig_date', 'comp_date', 'ch_his_date',
+                 'rtss_vacc_rtss1_date','rtss_vacc_rtss2_date','rtss_vacc_rtss3_date','rtss_vacc_rtss4_date']]
             last_visit = last_visit[last_visit.eq(el)]
             last_visit = last_visit[last_visit.notnull()]
             last_visit = last_visit.dropna(how='all')
@@ -1180,6 +1180,7 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
 
             ## ALARM 1
             build_azivac(redcap_project, redcap_project_df, av_alert,blocked_records, fu_status_event, AV_REDCAP_AL1,AVRES5)
+            build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event, AV_REDCAP_AL2, AVRES5,print_=True)
         #       set_azivac_part2(redcap_project, redcap_project_df, av_alert2,blocked_records, fu_status_event, AV_REDCAP_AL2,AVRES5)
         else:
             print("[AZIVAC] Alerts removal: None")
@@ -1189,7 +1190,7 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
         print("[AZIVAC] Alerts removal: None")
         print("[AZIVAC] Alerts setup: None")
 
-def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event,AV_REDCAP_AL1,AVRES5):
+def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event,AV_REDCAP_AL1,AVRES5,print_=False):
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
 
     records_av_al1 = AV_REDCAP_AL1.index.get_level_values(0)
@@ -1238,6 +1239,8 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
             to_import_list.append({'record_id': id, 'child_fu_status': status})
 
 
+    if print_:
+        print(to_import_list)
     response = redcap_project.import_records(to_import_list)
     print("[AZIVAC] Alerts setup: {}".format(response.get('count')))
 

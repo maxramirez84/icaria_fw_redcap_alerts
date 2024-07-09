@@ -130,7 +130,7 @@ ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'community', '
                       'death_reported_date', 'ae_date','sae_awareness_date','ms_date_contact','unsch_date','mig_date','comp_date',
                       'ch_his_date','phone_child_status','child_fu_status','azivac_study_number','azivac_date',
                       'rtss_vacc_rtss1_date','rtss_vacc_rtss2_date','rtss_vacc_rtss3_date','rtss_vacc_rtss4_date',
-                      'sae_hosp_admin_date','sae_hosp_disch_date']
+                      'sae_hosp_admin_date']
 
 subprojects = {'HF01':['HF01.01','HF01.02'],'HF02':['HF02.01','HF02.02'],'HF08':['HF08.01','HF08.02','HF08.03'],
                'HF12':['HF12.01','HF12.02'],'HF16':['HF16.01','HF16.02','HF16.03','HF16.04']}
