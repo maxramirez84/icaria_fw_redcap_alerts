@@ -1238,9 +1238,8 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
                     status = str(el.child_fu_status).split("(AV)")[0] + "(AV)"
             to_import_list.append({'record_id': id, 'child_fu_status': status})
 
-
-    if print_:
-        print(to_import_list)
+#    if print_:
+#        print(to_import_list)
     response = redcap_project.import_records(to_import_list)
     print("[AZIVAC] Alerts setup: {}".format(response.get('count')))
 
