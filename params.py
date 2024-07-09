@@ -64,7 +64,7 @@ NV_ALERT_STRING = NV_ALERT + ": {return_date}"
 
 # AZIVAC ALERT
 AZIVAC_ALERT = "(AV)"
-AZIVAC_ALERT_SERIOUS = "(AV-S)"
+AZIVAC_ALERT_SERIOUS = "(AVS)"
 
 # NEXT VISIT ALERT
 DAYS_BEFORE_NV = 7  # Defined by In-Country Technical Coordinator

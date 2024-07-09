@@ -1157,7 +1157,8 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
     :type fu_status_event: str
     :return: None
     """
-    av_alert2 = av_alert + "_S"
+
+
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
     V4_REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epimvr1_v4_iptisp4_arm_1'")
     V5_REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epivita_v5_iptisp5_arm_1'")
@@ -1180,7 +1181,7 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
 
             ## ALARM 1
             build_azivac(redcap_project, redcap_project_df, av_alert,blocked_records, fu_status_event, AV_REDCAP_AL1,AVRES5)
-            build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event, AV_REDCAP_AL2, AVRES5,print_=True)
+            build_azivac(redcap_project, redcap_project_df, params.AZIVAC_ALERT_SERIOUS, blocked_records, fu_status_event, AV_REDCAP_AL2, AVRES5,print_=True)
         #       set_azivac_part2(redcap_project, redcap_project_df, av_alert2,blocked_records, fu_status_event, AV_REDCAP_AL2,AVRES5)
         else:
             print("[AZIVAC] Alerts removal: None")
@@ -1200,21 +1201,19 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
 
     # Remove those ids that must be ignored
     if blocked_records is not None:
-        print(blocked_records)
         records_av_al1 = records_av_al1.difference(blocked_records)
 
     if params.azivac_blocked_records is not None:
-        print(params.azivac_blocked_records)
+#        print(params.azivac_blocked_records)
         records_av_al1 = records_av_al1.difference(params.azivac_blocked_records)
 
     records_with_alerts_al1 = get_active_alerts(redcap_project_df, av_alert, fu_status_event, type_='BW')
-    #print(blocked_records)
 
     if records_with_alerts_al1 is not None:
         alerts_to_be_removed_al1 = records_with_alerts_al1.difference(records_av_al1)
         # Import data into the REDCap project: Alerts removal
         to_import_dict = [
-            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split("(AV)")[0]} for
+            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(av_alert)[0]} for
             rec_id in alerts_to_be_removed_al1]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
         print("[AZIVAC] Alerts removal: {}".format(response.get('count')))
@@ -1230,12 +1229,12 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
         if el.record_id in records_av_al1:
             id = el.record_id
             if str(el.child_fu_status) == 'nan':
-                status = "(AV)"
+                status = av_alert
             else:
                 if "COMPLETED" in str(el.child_fu_status):
-                    status = str(el.child_fu_status).split("(AV)")[0]
+                    status = str(el.child_fu_status).split(av_alert)[0]
                 else:
-                    status = str(el.child_fu_status).split("(AV)")[0] + "(AV)"
+                    status = str(el.child_fu_status).split(av_alert)[0] + av_alert
             to_import_list.append({'record_id': id, 'child_fu_status': status})
 
 #    if print_:
