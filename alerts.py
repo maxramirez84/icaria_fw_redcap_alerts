@@ -730,7 +730,6 @@ def build_new_ms_alerts_df(redcap_data, record_ids, alert_string, event_names, l
     new_last_visit = pd.DataFrame(columns=['redcap_event_name'])
     for k, el in last_visit_dates.T.items():
         if k in record_ids:
-            print(k)
             last_visit = redcap_data.loc[k][['int_date', 'a1m_date', 'hh_date', 'ms_date_contact',
                  'unsch_date', 'mig_date', 'sae_hosp_admin_date', 'rtss_date',
                  'comp_date', 'ch_his_date', 'rtss_vacc_rtss1_date',
@@ -744,9 +743,7 @@ def build_new_ms_alerts_df(redcap_data, record_ids, alert_string, event_names, l
             """
             last_visit = last_visit[last_visit.eq(el)]
             last_visit = last_visit[last_visit.notnull()]
-            print(last_visit)
             last_visit = last_visit.dropna(how='all')
-            print(last_visit)
             new_last_visit.loc[k] = last_visit.index[0]
     last_epi_visit = pandas.to_datetime(last_epi_visit)
     last_epi_visit = last_epi_visit.reset_index()
