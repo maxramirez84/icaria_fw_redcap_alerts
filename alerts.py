@@ -649,11 +649,26 @@ def get_record_ids_new_ms(redcap_data, days_after_epi, excluded_epi_visits):
     x['rtss_vacc_rtss2_date'] = pandas.to_datetime(x['rtss_vacc_rtss2_date'])
     x['rtss_vacc_rtss3_date'] = pandas.to_datetime(x['rtss_vacc_rtss3_date'])
     x['rtss_vacc_rtss4_date'] = pandas.to_datetime(x['rtss_vacc_rtss4_date'])
+    x['rtss_date'] = pandas.to_datetime(x['rtss_date'])
 
     x = x.query("redcap_event_name not in @excluded_epi_visits")
 
+    """
+    
+    
+    A CANVIAR!!!!!! 
+    
+    ['int_date', 'a1m_date', 'hh_date', 'ms_date_contact', 'unsch_date','sae_hosp_admin_date','comp_date', 'ch_his_date', 'rtss_date',
+     'rtss_vacc_rtss1_date', 'rtss_vacc_rtss2_date', 'rtss_vacc_rtss3_date','rtss_vacc_rtss4_date',
+     'int_vacc_bcg_date','int_vacc_opv1_date','int_vacc_opv2_date','int_vacc_opv3_date',
+     'int_vacc_ipv_date','int_vacc_ipv2_date','int_vacc_penta1_date','int_vacc_penta2_date',
+     'int_vacc_penta3_date','int_vacc_pneumo1_date','int_vacc_pneumo2_date','int_vacc_pneumo3_date',
+     'int_vacc_rota1_date','int_vacc_rota2_date','int_vacc_mrv1_date','int_vacc_mrv2_date',
+     'int_vacc_yellow_fever_date','int_vacc_vit_a_date','int_vacc_deworm_date',
+    """
+
     dates_df = x.groupby('record_id')[
-        ['int_date', 'a1m_date', 'hh_date', 'ms_date_contact', 'unsch_date', 'mig_date', 'sae_hosp_admin_date',
+        ['int_date', 'a1m_date', 'hh_date', 'ms_date_contact', 'unsch_date', 'mig_date', 'sae_hosp_admin_date', 'rtss_date',
          'comp_date', 'ch_his_date','rtss_vacc_rtss1_date','rtss_vacc_rtss2_date','rtss_vacc_rtss3_date','rtss_vacc_rtss4_date']].max().reset_index().set_index('record_id')
     last_visit_dates = dates_df.apply(pd.to_datetime).max(axis=1)
     #    last_visit_dates = x.groupby('record_id')['int_date'].max()
@@ -1169,7 +1184,8 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
         AV_REDCAP_V4 = V4_REDCAP_QUERY[(V4_REDCAP_QUERY['azivac_study_number']!='')&(~V4_REDCAP_QUERY['azivac_date'].isnull())]
         AV_REDCAP_V5 = V5_REDCAP_QUERY[(V5_REDCAP_QUERY['azivac_study_number']!='')&(~V5_REDCAP_QUERY['azivac_date'].isnull())]
         AVRES5 = AV_REDCAP_V5.reset_index()
-
+        print(AVRES5['record_id'])
+        print(AVRES5[AVRES5['record_id']=='16040268'])
         if not AV_REDCAP_V4.empty:
             AV_REDCAP_V4[['azivac_date']] = AV_REDCAP_V4[['azivac_date']].apply(pd.to_datetime)
 
@@ -1177,11 +1193,12 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
             #AV_REDCAP_V4 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=120)]
 
             AV_REDCAP_AL1 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=92)]
-            AV_REDCAP_AL2 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 92)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=122)]
+            AV_REDCAP_AL2 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days > 92)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=122)]
 
             ## ALARM 1
             build_azivac(redcap_project, redcap_project_df, av_alert,blocked_records, fu_status_event, AV_REDCAP_AL1,AVRES5)
             build_azivac(redcap_project, redcap_project_df, params.AZIVAC_ALERT_SERIOUS, blocked_records, fu_status_event, AV_REDCAP_AL2, AVRES5,print_=True)
+            #build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event, AV_REDCAP_AL2, AVRES5, print_=True)
         #       set_azivac_part2(redcap_project, redcap_project_df, av_alert2,blocked_records, fu_status_event, AV_REDCAP_AL2,AVRES5)
         else:
             print("[AZIVAC] Alerts removal: None")
@@ -1195,6 +1212,7 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
 
     records_av_al1 = AV_REDCAP_AL1.index.get_level_values(0)
+    print(records_av_al1)
    # Remove those ids with already endline collected
     if list(AVRES5['record_id']) is not None:
         records_av_al1 = records_av_al1.difference(list(AVRES5['record_id']))
@@ -1208,12 +1226,12 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
         records_av_al1 = records_av_al1.difference(params.azivac_blocked_records)
 
     records_with_alerts_al1 = get_active_alerts(redcap_project_df, av_alert, fu_status_event, type_='BW')
-
+    print(records_with_alerts_al1)
     if records_with_alerts_al1 is not None:
         alerts_to_be_removed_al1 = records_with_alerts_al1.difference(records_av_al1)
         # Import data into the REDCap project: Alerts removal
         to_import_dict = [
-            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split(av_alert)[0]} for
+            {'record_id': rec_id, 'child_fu_status': str(REDCAP_QUERY['child_fu_status'][rec_id][0]).split('(')[0]} for
             rec_id in alerts_to_be_removed_al1]
         response = redcap_project.import_records(to_import_dict, overwrite='overwrite')
         print("[AZIVAC] Alerts removal: {}".format(response.get('count')))
@@ -1223,7 +1241,6 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
 
     RC_query_res = REDCAP_QUERY.reset_index()
     df_to_set_alarm_al1 = RC_query_res[RC_query_res['record_id'].isin(records_av_al1)][['record_id','child_fu_status']]
-    #print(df_to_set_alarm_al1)
     to_import_list = []
     for k, el in df_to_set_alarm_al1.T.items():
         if el.record_id in records_av_al1:
@@ -1232,9 +1249,9 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
                 status = av_alert
             else:
                 if "COMPLETED" in str(el.child_fu_status):
-                    status = str(el.child_fu_status).split(av_alert)[0]
+                    status = str(el.child_fu_status).split('(')[0]
                 else:
-                    status = str(el.child_fu_status).split(av_alert)[0] + av_alert
+                    status = str(el.child_fu_status).split('(')[0] + av_alert
             to_import_list.append({'record_id': id, 'child_fu_status': status})
 
 #    if print_:
