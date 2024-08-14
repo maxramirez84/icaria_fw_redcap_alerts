@@ -1191,8 +1191,8 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
         AV_REDCAP_V4 = V4_REDCAP_QUERY[(V4_REDCAP_QUERY['azivac_study_number']!='')&(~V4_REDCAP_QUERY['azivac_date'].isnull())]
         AV_REDCAP_V5 = V5_REDCAP_QUERY[(V5_REDCAP_QUERY['azivac_study_number']!='')&(~V5_REDCAP_QUERY['azivac_date'].isnull())]
         AVRES5 = AV_REDCAP_V5.reset_index()
-        print(AVRES5['record_id'])
-        print(AVRES5[AVRES5['record_id']=='16040268'])
+        #print(AVRES5['record_id'])
+        #print(AVRES5[AVRES5['record_id']=='16040268'])
         if not AV_REDCAP_V4.empty:
             AV_REDCAP_V4[['azivac_date']] = AV_REDCAP_V4[['azivac_date']].apply(pd.to_datetime)
 
@@ -1219,7 +1219,7 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
     REDCAP_QUERY = redcap_project_df.query("redcap_event_name == 'epipenta1_v0_recru_arm_1'")
 
     records_av_al1 = AV_REDCAP_AL1.index.get_level_values(0)
-    print(records_av_al1)
+#    print(records_av_al1)
    # Remove those ids with already endline collected
     if list(AVRES5['record_id']) is not None:
         records_av_al1 = records_av_al1.difference(list(AVRES5['record_id']))
@@ -1233,7 +1233,7 @@ def build_azivac(redcap_project, redcap_project_df, av_alert, blocked_records, f
         records_av_al1 = records_av_al1.difference(params.azivac_blocked_records)
 
     records_with_alerts_al1 = get_active_alerts(redcap_project_df, av_alert, fu_status_event, type_='BW')
-    print(records_with_alerts_al1)
+#    print(records_with_alerts_al1)
     if records_with_alerts_al1 is not None:
         alerts_to_be_removed_al1 = records_with_alerts_al1.difference(records_av_al1)
         # Import data into the REDCap project: Alerts removal
