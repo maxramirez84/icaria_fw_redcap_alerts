@@ -1163,6 +1163,10 @@ def set_bw_alerts(redcap_project, redcap_project_df, bw_alert, blocked_records, 
     print("[BIRTH WEIGHT] Alerts setup: {}".format(response.get('count')))
 
 """ AZIVAC ALERT """
+
+
+def diff_month(d1, d2):
+    return (d1.year - d2.year) * 12 + d1.month - d2.month
 def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_records, fu_status_event):
     """
     To alert of those participants without information about Birth Weight
@@ -1199,8 +1203,31 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
             # Get only those participants with AziVac collection done between 1M and 4M ago
             #AV_REDCAP_V4 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=120)]
 
-            AV_REDCAP_AL1 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=92)]
-            AV_REDCAP_AL2 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days > 92)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=122)]
+            #AV_REDCAP_AL1 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days >= 30)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=91)]
+            #AV_REDCAP_AL2 = AV_REDCAP_V4[((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days > 91)&((datetime.today() - AV_REDCAP_V4['azivac_date']).dt.days <=121)]
+
+            AL1_tf = []
+            AL2_tf = []
+            for k,el in AV_REDCAP_V4.T.items():
+                #datetime_object = datetime.strptime(el,'%y-%m-%d %H:%M:%S')
+                dm = diff_month(date.today(),el['azivac_date'])
+                #print(k,el['azivac_date'],dm)
+                if 3 > dm >= 1:
+                    AL1_tf.append(True)
+                else:
+                    AL1_tf.append(False)
+
+                if dm == 3:
+                    AL2_tf.append(True)
+                else:
+                    AL2_tf.append(False)
+
+            #for k, el in AV_REDCAP_AL1.T.items():
+            #    if k[0] not in AV_REDCAP_V4[AL1_tf].reset_index()['record_id'].unique():
+            #        print(k[0])
+
+            AV_REDCAP_AL1 = AV_REDCAP_V4[AL1_tf]
+            AV_REDCAP_AL2 = AV_REDCAP_V4[AL2_tf]
 
             ## ALARM 1
             build_azivac(redcap_project, redcap_project_df, av_alert,blocked_records, fu_status_event, AV_REDCAP_AL1,AVRES5)
