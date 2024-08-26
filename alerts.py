@@ -1212,12 +1212,12 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
                 #datetime_object = datetime.strptime(el,'%y-%m-%d %H:%M:%S')
                 dm = diff_month(date.today(),el['azivac_date'])
                 #print(k,el['azivac_date'],dm)
-                if 3 > dm >= 1:
+                if 2 > dm >= 1:
                     AL1_tf.append(True)
                 else:
                     AL1_tf.append(False)
 
-                if dm == 3:
+                if 4 > dm >= 2:
                     AL2_tf.append(True)
                 else:
                     AL2_tf.append(False)
