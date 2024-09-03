@@ -34,7 +34,7 @@ if __name__ == '__main__':
         # Get all records for each ICARIA REDCap project (TRIAL)
         print("\n[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
-        df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+        df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
         """
         ### TO REMOVE AN ALERT FROM PROJECT 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 # NEXT VISIT ALERT
         if params.NV_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
             alerts.set_nv_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
@@ -90,7 +90,7 @@ if __name__ == '__main__':
             # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_nc_alerts(
                 redcap_project=project,
@@ -110,7 +110,7 @@ if __name__ == '__main__':
             # Update REDCap data as it has may been modified by previous alerts
             fields = project.export_field_names()
             field_names = [field['export_field_name'] for field in fields]
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_new_ms_alerts(
                 redcap_project=project,
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
 # MRV2 VISIT ALERT. 15 MONTH OF AGE
         if params.MRV2_ALERT in params.TRIAL_DEFINED_ALERTS:
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_mrv2_alerts(
                 # Update REDCap data as it has may been modified by previous alerts
@@ -147,7 +147,7 @@ if __name__ == '__main__':
                 ### DEPRECATED ###
         if params.BW_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
             alerts.set_bw_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
@@ -160,7 +160,7 @@ if __name__ == '__main__':
 # AZIVAC ALERT
         if params.AZIVAC_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
             alerts.set_azivac_alerts(
                 redcap_project=project,
                 redcap_project_df=df,
@@ -172,7 +172,7 @@ if __name__ == '__main__':
         # End of Follow Up
         if params.END_FU_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_end_fu_alerts(
                 redcap_project=project,
@@ -194,8 +194,8 @@ if __name__ == '__main__':
                 ### DEPRECATED ###
         if params.NON_CONT_COHORT_ALERT in params.TRIAL_DEFINED_ALERTS:
             # Update REDCap data as it has may been modified by previous alerts
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
             alerts.set_nc_cohort_alerts(
                 project_key=project_key,
@@ -216,7 +216,7 @@ if __name__ == '__main__':
         print("[{}] Getting all records from {}...".format(datetime.now(), project_key))
         fields = project.export_field_names()
         field_names = [field['export_field_name'] for field in fields]
-        df = project.export_records(format='df', fields=field_names)
+        df = project.export_records(format_type='df', fields=field_names)
         # Custom status
         custom_status_ids = alerts.get_record_ids_with_custom_status(
             redcap_data=df,

@@ -127,7 +127,7 @@ def get_list_communities(redcap_project, choice_sep, code_sep):
     :return: A dictionary in which the keys are the community code and the values are the community names.
     :rtype: dict
     """
-    community_field = redcap_project.export_metadata(fields=['community'], format='df')
+    community_field = redcap_project.export_metadata(fields=['community'], format_type='df')
     community_choices = community_field['select_choices_or_calculations'].community
     communities_string = community_choices.split(choice_sep)
     return {community.split(code_sep)[0]: community.split(code_sep)[1] for community in communities_string}
@@ -1191,6 +1191,7 @@ def set_azivac_alerts(redcap_project, redcap_project_df, av_alert, blocked_recor
     V4_REDCAP_QUERY['azivac_study_number'] = V4_REDCAP_QUERY['azivac_study_number'].fillna('')
     V5_REDCAP_QUERY['azivac_study_number'] = V5_REDCAP_QUERY['azivac_study_number'].fillna('')
 
+
     if not V4_REDCAP_QUERY.empty:
         AV_REDCAP_V4 = V4_REDCAP_QUERY[(V4_REDCAP_QUERY['azivac_study_number']!='')&(~V4_REDCAP_QUERY['azivac_date'].isnull())]
         AV_REDCAP_V5 = V5_REDCAP_QUERY[(V5_REDCAP_QUERY['azivac_study_number']!='')&(~V5_REDCAP_QUERY['azivac_date'].isnull())]
@@ -1522,7 +1523,7 @@ def cohort_stopping_sistem(redcap_project,nletter,projectkey,date_='2023-06'):
         cohorts_from_this_months = pd.DataFrame()
         for el in params.subprojects[str(projectkey).split(".")[0]]:
             project = redcap.Project(params.URL, params.TRIAL_PROJECTS[el])
-            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            df = project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
             xres = df.reset_index()
             actual_cohorts = xres[xres['redcap_event_name']=='cohort_after_mrv_2_arm_1'][['record_id','ch_his_date']]
             letters_ = xres[(xres['record_id'].isin(list(actual_cohorts['record_id'].unique())))&(xres['redcap_event_name']=='epipenta1_v0_recru_arm_1')][['record_id','int_random_letter']]
@@ -1605,7 +1606,7 @@ def set_label_cohorts(redcap_project):
     :type redcap_data: redcap.Project
     :return
     """
-    redcap_data = redcap_project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+    redcap_data = redcap_project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
     xres = redcap_data.reset_index()
 
@@ -1650,7 +1651,7 @@ def build_cohort_alerts_df(record_ids, alert_string, redcap_project):
     :rtype: pandas.DataFrame
     """
 
-    redcap_data = redcap_project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+    redcap_data = redcap_project.export_records(format_type='df', fields=params.ALERT_LOGIC_FIELDS)
 
     fustatus = redcap_data.loc[record_ids, ['child_fu_status']]
     fustatus = fustatus.groupby('record_id')['child_fu_status'].last()  # To move from a DataFrame to a Series
